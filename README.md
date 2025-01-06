@@ -28,7 +28,7 @@ Follow these steps to set up the project locally.
 ### Installation
 
 1. Clone the repository:
-   git clone https://github.com/your-username/readme-clubs.git
+   git clone https://github.com/pagedao/readme-clubs.git
    cd readme-clubs
 
 2. Install dependencies:
