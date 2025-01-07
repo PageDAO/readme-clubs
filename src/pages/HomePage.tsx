@@ -54,8 +54,10 @@ const UNISWAP_V2_PAIR_ABI = [
   },
 ] as const;
 
+type GetReservesResult = [bigint, bigint, number];
+
 const HomePage: React.FC = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const [isUniswapModalOpen, setIsUniswapModalOpen] = useState(false);
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
   const [pagePrice, setPagePrice] = useState<number | null>(null);
@@ -66,36 +68,37 @@ const HomePage: React.FC = () => {
   });
 
   const { data: pageBalanceData } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS,
+    address: PAGE_TOKEN_ADDRESS as Address,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
   }) as { data: bigint | undefined };
 
   const { data: pageDecimals } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS,
+    address: PAGE_TOKEN_ADDRESS as Address,
     abi: ERC20_ABI,
     functionName: 'decimals',
   }) as { data: number | undefined };
 
   const { data: lpReserves } = useContractRead({
-    address: LP_CONTRACT_ADDRESS,
+    address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'getReserves',
-  }) as { data: [bigint, bigint, number] | undefined };
+  }) as { data: GetReservesResult | undefined };
 
   const { data: token0 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS,
+    address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token0',
   }) as { data: Address | undefined };
 
   const { data: token1 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS,
+    address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token1',
   }) as { data: Address | undefined };
 
+  // Fetch ETH/USD price
   useEffect(() => {
     const fetchEthUsdPrice = async () => {
       try {
@@ -112,6 +115,7 @@ const HomePage: React.FC = () => {
     fetchEthUsdPrice();
   }, []);
 
+  // Calculate prices and TVL
   useEffect(() => {
     if (lpReserves && token0 && token1 && ethUsdPrice && pageDecimals) {
       const isPageToken0 = token0.toLowerCase() === PAGE_TOKEN_ADDRESS.toLowerCase();
@@ -161,33 +165,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Welcome to Readme Clubs</h1>
-
-      {/* Balances Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Your Balances</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <p className="text-gray-600">ETH Balance</p>
-            <p className="text-2xl font-bold">
-              {ethBalance ? `${parseFloat(ethBalance.formatted).toFixed(4)} ETH` : '0.0000 ETH'}
-            </p>
-            <p className="text-gray-600">
-              ${ethBalanceUsd.toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <p className="text-gray-600">$PAGE Balance</p>
-            <p className="text-2xl font-bold">
-              {pageBalance.toFixed(2)} $PAGE
-            </p>
-            <p className="text-gray-600">
-              ${pageBalanceUsd.toFixed(2)}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Prices Section */}
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4">Token Prices</h2>
@@ -217,19 +194,49 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Liquidity Pool Section */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">Liquidity Pool</h2>
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <p className="text-gray-600">Provide liquidity and earn rewards.</p>
-          <button
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => setIsUniswapModalOpen(true)}
-          >
-            Trade $PAGE
-          </button>
-        </div>
-      </div>
+      {/* Only show if connected */}
+      {isConnected && (
+        <>
+          {/* Balances Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">Your Balances</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <p className="text-gray-600">ETH Balance</p>
+                <p className="text-2xl font-bold">
+                  {ethBalance ? `${parseFloat(ethBalance.formatted).toFixed(4)} ETH` : '0.0000 ETH'}
+                </p>
+                <p className="text-gray-600">
+                  ${ethBalanceUsd.toFixed(2)}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <p className="text-gray-600">$PAGE Balance</p>
+                <p className="text-2xl font-bold">
+                  {pageBalance.toFixed(2)} $PAGE
+                </p>
+                <p className="text-gray-600">
+                  ${pageBalanceUsd.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Liquidity Pool Section */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">Liquidity Pool</h2>
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <p className="text-gray-600">Provide liquidity and earn rewards.</p>
+              <button
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+                onClick={() => setIsUniswapModalOpen(true)}
+              >
+                Trade $PAGE
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Uniswap Modal */}
       <UniswapModal
