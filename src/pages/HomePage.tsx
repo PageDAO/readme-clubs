@@ -114,7 +114,7 @@ const HomePage: React.FC = () => {
         console.error('Failed to fetch ETH/USD price:', error);
       }
     };
-  
+
     fetchEthUsdPrice();
   }, []);
 
@@ -165,6 +165,9 @@ const HomePage: React.FC = () => {
   const pageBalanceUsd = pagePrice !== null
     ? pageBalance * pagePrice
     : 0;
+
+  // Uniswap URL
+  const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PAGE_TOKEN_ADDRESS}&inputCurrency=ETH`;
 
   return (
     <div className="p-4">
@@ -231,10 +234,16 @@ const HomePage: React.FC = () => {
             <div className="bg-white p-4 rounded-lg shadow-md">
               <p className="text-gray-600">Provide liquidity and earn rewards.</p>
               <button
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded mr-2"
                 onClick={() => setIsUniswapModalOpen(true)}
               >
                 Trade $PAGE
+              </button>
+              <button
+                className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
+                onClick={() => window.open(uniswapUrl, '_blank')}
+              >
+                Go to Uniswap
               </button>
             </div>
           </div>
