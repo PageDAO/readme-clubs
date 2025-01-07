@@ -103,15 +103,18 @@ const HomePage: React.FC = () => {
     const fetchEthUsdPrice = async () => {
       try {
         const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+          `https://api.allorigins.win/get?url=${encodeURIComponent(
+            'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+          )}`
         );
         const data = await response.json();
-        setEthUsdPrice(data.ethereum.usd);
+        const ethPrice = JSON.parse(data.contents).ethereum.usd;
+        setEthUsdPrice(ethPrice);
       } catch (error) {
         console.error('Failed to fetch ETH/USD price:', error);
       }
     };
-
+  
     fetchEthUsdPrice();
   }, []);
 

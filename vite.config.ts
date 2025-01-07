@@ -27,4 +27,15 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    global: 'window',
+    'process.env': {},
+  },
+  resolve: {
+    alias: {
+      process: 'process/browser',
+      stream: 'stream-browserify',
+      util: 'util',
+    },
+  },
 });
