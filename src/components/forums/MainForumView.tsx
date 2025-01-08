@@ -1,7 +1,7 @@
 // src/components/forum/MainForumView.tsx
 import React from 'react';
 import { useOrbis } from '../../contexts/OrbisContext';
-import { PostList } from './postlist';
+import { PostList } from './PostList';
 import CreatePost from './CreatePost';
 
 interface MainForumViewProps {

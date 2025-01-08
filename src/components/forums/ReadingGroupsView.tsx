@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOrbis } from '../../contexts/OrbisContext';
 import { BookForum, PostingAccess } from '../../types/forum';
-import { PostList } from './postlist';
+import { PostList } from './PostList';
 
 interface ReadingGroup {
   stream_id: string;
