@@ -1,36 +1,29 @@
-import React from 'react'
-import { useOrbis } from '../../contexts/OrbisContext'
-import { useAccount } from 'wagmi'
+import React, { useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount, useChainId } from 'wagmi'
 
 interface TopBarProps {
   onToggleSidebar: () => void;
 }
 
 const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }): JSX.Element => {
-  const { isConnected, address } = useAccount();
-  const { isConnected: isOrbisConnected, connectOrbis } = useOrbis();
+  const { isConnected, address } = useAccount()
+  const chainId = useChainId()
 
-  React.useEffect(() => {
-    if (isConnected && address) {
-      connectOrbis();
-    }
-  }, [isConnected, address, connectOrbis]);
+  useEffect(() => {
+    console.log('Connection state:', { isConnected, address, chainId })
+  }, [isConnected, address, chainId])
 
   return (
     <div className="flex justify-between items-center p-4 bg-white shadow-md">
       <button onClick={onToggleSidebar} className="text-2xl">☰</button>
-      <input
-        type="text"
-        placeholder="Search books..."
-        className="px-4 py-2 border rounded"
-      />
       <div className="flex items-center gap-4">
-        <ConnectButton />
-        {isOrbisConnected && <span className="text-sm">Orbis Connected</span>}
+        <ConnectButton 
+          chainStatus="icon"
+          showBalance={false}
+        />
       </div>
     </div>
-  );
-};
-
-export default TopBar;
+  )
+}
+export default TopBar
