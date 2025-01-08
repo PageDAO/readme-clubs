@@ -1,29 +1,21 @@
+// src/pages/ForumPage.tsx
 import React from 'react';
-import ForumThread from '../features/forum/ForumThreadList';
-import { ForumThread as ForumThreadType } from '../types';
+import { useParams } from 'react-router-dom';
+import { PostList } from '../components/forums/postlist';
 
-const mockThreads: ForumThreadType[] = [
-  {
-    id: 1,
-    title: 'What did you think of Chapter 1?',
-    author: 'User1',
-    replies: 5,
-    lastActivity: '2 hours ago',
-  },
-  {
-    id: 2,
-    title: 'Favorite character so far?',
-    author: 'User2',
-    replies: 12,
-    lastActivity: '1 day ago',
-  },
-];
+const FORUM_CONTEXT_ID = 'kjzl6cwe1jw1493t92y0tygz2bh5fxa28b0j32sw21d72q0lcqccnh0zyxtbrpv';
 
-const ForumPage: React.FC = () => {
+const ForumPage = () => {
+  const { forumId = FORUM_CONTEXT_ID } = useParams();
+
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Forum</h1>
-      <ForumThread threads={mockThreads} />
+    <div className="max-w-4xl mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">Forum</h1>
+      </div>
+      
+      <PostList forumId={forumId} />
     </div>
   );
 };

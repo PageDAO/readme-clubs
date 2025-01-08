@@ -1,37 +1,37 @@
-import { ReactNode } from 'react';
-import { WagmiProvider, http } from 'wagmi';
-import { base } from 'wagmi/chains';
+import { createConfig, http, WagmiProvider } from 'wagmi';
+import { mainnet, base } from 'wagmi/chains';
+import { walletConnect } from '@wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
-import '@rainbow-me/rainbowkit/styles.css';
+import { ReactNode } from 'react';
 
-const queryClient = new QueryClient();
-
-const config = getDefaultConfig({
-  appName: 'Readme Clubs',
-  projectId: '5e709b61d319ac0c7d59daa4240e3daf',
-  chains: [base],
+// Create a WAGMI config with WalletConnect
+export const wagmiConfig = createConfig({
+  chains: [mainnet, base],
+  connectors: [
+    walletConnect({
+      projectId: '5e709b61d319ac0c7d59daa4240e3daf', // Replace with your WalletConnect project ID
+      showQrModal: true, // Show WalletConnect QR modal
+    }),
+  ],
   transports: {
+    [mainnet.id]: http(),
     [base.id]: http(),
   },
 });
+
+// Create a QueryClient for React Query
+const queryClient = new QueryClient();
 
 interface Web3ProviderProps {
   children: ReactNode;
 }
 
-const Web3Provider = ({ children }: Web3ProviderProps) => {
+export const Web3Provider = ({ children }: Web3ProviderProps) => {
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
-        </RainbowKitProvider>
+        {children}
       </QueryClientProvider>
     </WagmiProvider>
   );
 };
-
-export default Web3Provider;
