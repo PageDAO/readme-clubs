@@ -1,6 +1,8 @@
 // src/components/PostList.tsx
 import React, { useEffect, useState } from 'react';
 import { orbis } from '../../services/orbisClient';
+import { Link } from 'react-router-dom';
+
 
 interface PostListProps {
   forumId: string;
@@ -76,22 +78,25 @@ export const PostList: React.FC<PostListProps> = ({ forumId, filter }) => {
   return (
     <div className="space-y-4 p-4">
       {posts.map((post) => (
-        <div 
-          key={post.stream_id} 
-          className="bg-white rounded-lg shadow-md p-4"
+        <Link 
+          key={post.stream_id}
+          to={`/post/${post.stream_id}`}
+          className="block hover:shadow-lg transition-shadow duration-200"
         >
-          <div className="flex justify-between items-start mb-2">
-            <div className="font-medium text-gray-900">
-              {post.creator_details?.profile?.username || 'Anonymous'}
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex justify-between items-start mb-2">
+              <div className="font-medium text-gray-900">
+                {post.creator_details?.profile?.username || 'Anonymous'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {new Date(post.timestamp * 1000).toLocaleString()}
+              </div>
             </div>
-            <div className="text-sm text-gray-500">
-              {new Date(post.timestamp * 1000).toLocaleString()}
+            <div className="text-gray-700 whitespace-pre-wrap">
+              {post.content.body}
             </div>
           </div>
-          <div className="text-gray-700 whitespace-pre-wrap">
-            {post.content.body}
-          </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

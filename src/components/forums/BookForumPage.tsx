@@ -6,7 +6,7 @@ import { BookForum } from '../../types/forum';
 import MainForumView from './MainForumView';
 import ReadingGroupsView from './ReadingGroupsView';
 import ModeratorTools from './ModeratorTools';
-import BuyKeyComponent from './BuyKeyComponent';
+// import BuyKeyComponent from './BuyKeyComponent';
 
 const BookForumPage: React.FC = () => {
   const { bookId } = useParams();
@@ -33,9 +33,9 @@ const BookForumPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  if (!hasAccess) {
-    return <BuyKeyComponent bookForum={bookForum} />;
-  }
+//  if (!hasAccess) {
+//    return <BuyKeyComponent bookForum={bookForum} />;
+//  }
 
   return (
     <div className="max-w-6xl mx-auto p-4">

@@ -40,3 +40,33 @@ export interface BookForum {
     timestamp: number;
     stream_id: string;
   }
+
+export enum ForumCategory {
+  TECH_SUPPORT = 'tech-support',
+  COMMUNITY_EVENTS = 'community-events',
+  PROJECT_UPDATES = 'project-updates'
+}
+
+export interface CategoryInfo {
+  id: ForumCategory
+  label: string
+  description: string
+}
+
+export const FORUM_CATEGORIES: CategoryInfo[] = [
+  {
+    id: ForumCategory.TECH_SUPPORT,
+    label: 'Technical Support',
+    description: 'Get help with wallet connections, token issues, and technical questions'
+  },
+  {
+    id: ForumCategory.COMMUNITY_EVENTS,
+    label: 'Community Events',
+    description: 'Upcoming events, meetups, and community gatherings'
+  },
+  {
+    id: ForumCategory.PROJECT_UPDATES,
+    label: 'Project Updates',
+    description: 'Latest news and updates about PageDAO projects'
+  }
+]
