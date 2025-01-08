@@ -1,7 +1,7 @@
 // src/pages/ForumPage.tsx
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { PostList } from '../components/forums/PostList';
+import { PostList } from '../components/forums/postlist';
 
 const FORUM_CONTEXT_ID = 'kjzl6cwe1jw1493t92y0tygz2bh5fxa28b0j32sw21d72q0lcqccnh0zyxtbrpv';
 

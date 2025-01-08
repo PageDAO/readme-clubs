@@ -1,7 +1,13 @@
 // src/components/PostList.tsx
 import React, { useEffect, useState } from 'react';
-import { fetchPosts } from '../../services/orbisClient';
-import { Link } from 'react-router-dom';
+import { orbis } from '../../services/orbisClient';
+
+interface PostListProps {
+  forumId: string;
+  filter?: {
+    groupId?: string;
+  };
+}
 
 interface Post {
   content: {
@@ -15,13 +21,12 @@ interface Post {
   };
   timestamp: number;
   stream_id: string;
+  data?: {
+    groupId?: string;
+  };
 }
 
-interface PostListProps {
-  forumId: string;
-}
-
-export const PostList = ({ forumId }: PostListProps) => {
+export const PostList: React.FC<PostListProps> = ({ forumId, filter }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,9 +35,23 @@ export const PostList = ({ forumId }: PostListProps) => {
     const loadPosts = async () => {
       try {
         setLoading(true);
-        const fetchedPosts = await fetchPosts(forumId);
-        setPosts(fetchedPosts);
+        const response = await orbis.getPosts({
+          context: forumId
+        });
+
+        if (response && Array.isArray(response.data)) {
+          let filteredPosts = response.data;
+          if (filter?.groupId) {
+            filteredPosts = filteredPosts.filter(post => 
+              post.data?.groupId === filter.groupId
+            );
+          }
+          setPosts(filteredPosts);
+        } else {
+          setError('Invalid response format');
+        }
       } catch (err) {
+        console.error('Error loading posts:', err);
         setError(err instanceof Error ? err.message : 'Failed to load posts');
       } finally {
         setLoading(false);
@@ -40,7 +59,7 @@ export const PostList = ({ forumId }: PostListProps) => {
     };
 
     loadPosts();
-  }, [forumId]);
+  }, [forumId, filter?.groupId]);
 
   if (loading) {
     return <div className="flex justify-center p-4">Loading posts...</div>;
@@ -57,26 +76,25 @@ export const PostList = ({ forumId }: PostListProps) => {
   return (
     <div className="space-y-4 p-4">
       {posts.map((post) => (
-        <Link 
-          to={`/post/${post.stream_id}`} 
-          key={post.stream_id}
-          className="block hover:shadow-lg transition-shadow duration-200"
+        <div 
+          key={post.stream_id} 
+          className="bg-white rounded-lg shadow-md p-4"
         >
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="font-medium text-gray-900">
-                {post.creator_details?.profile?.username || 'Anonymous'}
-              </div>
-              <div className="text-sm text-gray-500">
-                {new Date(post.timestamp * 1000).toLocaleString()}
-              </div>
+          <div className="flex justify-between items-start mb-2">
+            <div className="font-medium text-gray-900">
+              {post.creator_details?.profile?.username || 'Anonymous'}
             </div>
-            <div className="text-gray-700">
-              {post.content.body}
+            <div className="text-sm text-gray-500">
+              {new Date(post.timestamp * 1000).toLocaleString()}
             </div>
           </div>
-        </Link>
+          <div className="text-gray-700 whitespace-pre-wrap">
+            {post.content.body}
+          </div>
+        </div>
       ))}
     </div>
   );
 };
+
+export default PostList;
