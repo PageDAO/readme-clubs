@@ -1,14 +1,15 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Readme Clubs</title>
-    <script>
+    <script type="module">
       window.global = window;
-      window.Buffer = window.Buffer || require('buffer').Buffer;
-      var process = process || { env: { NODE_ENV: 'development' } };
+      import { Buffer } from 'buffer';
+      window.Buffer = Buffer;
+      window.process = { env: { NODE_ENV: 'development' } };
     </script>
   </head>
   <body>

@@ -3,6 +3,7 @@ import { useWalletClient, useAccount, usePublicClient } from 'wagmi';
 import { Orbis } from '@orbisclub/orbis-sdk';
 import type { RpcTransactionRequest } from 'viem';
 
+// Initialize Orbis SDK
 const orbis = new Orbis();
 
 interface OrbisContextType {
@@ -10,6 +11,7 @@ interface OrbisContextType {
   userDid: string | null;
   isConnected: boolean;
   connectOrbis: () => Promise<void>;
+  orbis: typeof orbis;  // Add this line to expose the Orbis instance
 }
 
 type WalletMethod = 
@@ -78,7 +80,13 @@ export const OrbisProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <OrbisContext.Provider value={{ orbisInstance, userDid, isConnected, connectOrbis }}>
+    <OrbisContext.Provider value={{ 
+      orbisInstance, 
+      userDid, 
+      isConnected, 
+      connectOrbis,
+      orbis  // Add the orbis instance to the context value
+    }}>
       {children}
     </OrbisContext.Provider>
   );
