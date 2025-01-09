@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId } from 'wagmi'
+import { useAccount } from 'wagmi'
+import { useOrbis } from '../../contexts/OrbisContext'
 
 interface TopBarProps {
   onToggleSidebar: () => void;
@@ -8,11 +9,13 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }): JSX.Element => {
   const { isConnected, address } = useAccount()
-  const chainId = useChainId()
+  const { connectOrbis } = useOrbis()
 
-  useEffect(() => {
-    console.log('Connection state:', { isConnected, address, chainId })
-  }, [isConnected, address, chainId])
+  React.useEffect(() => {
+    if (isConnected && address) {
+      connectOrbis()
+    }
+  }, [isConnected, address, connectOrbis])
 
   return (
     <div className="flex justify-between items-center p-4 bg-white shadow-md">
@@ -20,10 +23,15 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }): JSX.Element => {
       <div className="flex items-center gap-4">
         <ConnectButton 
           chainStatus="icon"
-          showBalance={false}
+          showBalance={true}
+          accountStatus={{
+            smallScreen: 'avatar',
+            largeScreen: 'full',
+          }}
         />
       </div>
     </div>
   )
 }
+
 export default TopBar
