@@ -1,0 +1,124 @@
+README CLUBS ARCHITECTURE
+
+I. CORE CONTRACT SYSTEM
+
+A. Books1155 NFT Contract
+- Permissionless minting with $PAGE fee (100 PAGE per mint)
+- 1/1 NFTs representing book ownership & rendering asset readable, will receive trading fees
+- Permanent metadata storage on Arweave during mint
+- Fee collection and forwarding to Staking contract
+- Integration with existing frontend wallet connections
+
+B. LP Staking Contract
+- Accepts $PAGE/$WETH Uniswap V2 LP tokens
+- Tracks staker positions and durations
+- Distributes collected fees from Books1155
+- Reward calculation based on stake size and time
+- Emergency withdrawal capabilities
+
+C. Clubs System
+- One Club per Books1155 token
+- Club Key trading mechanics with tiered bonding curves:
+  * Emerging (until 500 $PAGE locked)
+  * Verified (until 10k $PAGE locked) 
+  * Bestseller (gentle infinite curve)
+- Fee split between:
+  * LP Staking rewards
+  * Book publisher (1155 token holder)
+
+II. TOKEN ECONOMICS
+
+A. Fee Structure
+1. Book Minting
+- 100 PAGE flat fee
+- Collected in Books1155 contract
+- Forwarded to LP Staking contract
+
+2. Club Key Trading
+- Emerging tier: 60% fee, basic discovery
+- Verified tier: 30% fee, enhanced visibility
+- Bestseller tier: 15% fee, premium placement
+Distribution:
+  * 30% to LP Stakers
+  * 70% to book publisher
+
+3. LP Staking Rewards
+- Pro-rata distribution based on stake size
+- Minimum staking period: 7 days
+- Reward claiming any time after minimum period
+
+III. TECHNICAL IMPLEMENTATION
+
+A. Contract Deployment Sequence
+1. Deploy Books1155
+2. Deploy LP Staking
+3. Configure fee forwarding
+4. Initialize Clubs system
+
+B. Frontend Integration
+1. Minting Interface
+- PAGE balance check
+- Approval flow
+- Arweave metadata bundling and upload
+- Transaction status
+- Success/failure handling
+
+2. LP Staking Interface
+- Position management
+- Reward tracking
+- Claim interface
+- Emergency withdrawal
+
+3. Club Management
+- Key trading interface
+- Fee distribution tracking
+- Publisher dashboard
+- Team roles assigned by Publisher (club owner)
+
+IV. USER FLOWS
+
+A. Book Publishing
+1. Connect wallet
+2. Approve PAGE spend
+3. Upload to Arweave
+4. Mint Books1155 token
+5. Create associated Club
+
+B. LP Staking
+1. Add liquidity to Uniswap
+2. Stake LP tokens
+3. Monitor rewards
+4. Claim distributions
+
+C. Club Participation
+1. Buy Club Keys
+2. Access token-gated content
+3. Participate in discussions
+4. Trade Keys on market
+
+V. SECURITY CONSIDERATIONS
+
+A. Contract Security
+- Reentrancy protection
+- Integer overflow prevention
+- Access control patterns
+- Emergency pause functionality
+
+B. Economic Security
+- Minimum stake periods
+- Gradual reward distribution
+- Fee collection safeguards
+- Flash loan attack prevention
+
+VI. FUTURE EXPANSION
+
+A. Governance Integration
+- DAO voting rights for stakers
+- Proposal mechanisms
+- Parameter adjustment system
+
+B. Additional Features
+- Multiple tier Club memberships
+- Cross-chain expansion capabilities
+- Advanced analytics dashboard
+- Publisher reputation system
