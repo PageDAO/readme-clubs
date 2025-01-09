@@ -41,14 +41,27 @@ UI/UX
 
 PRIORITY 3 - ENHANCED FEATURES
 SMART CONTRACTS
-- Forum access control
-  * $PAGE token balance checking
-  * Minimum hold requirements
-  * Access level management
-- Post ownership & tipping
-  * Verification system
-  * Tip distribution
-  * Creator rewards
+- Base Factory Contract
+  * Implement proxy contract factory for book tokens
+  * Develop variable bonding curve mathematics
+  * Create standardized token deployment process
+  * Build book-token registry system
+- PDF NFT Minting System
+  * Port and modernize Readme Books NFTBook contract
+  * Implement IPFS/Arweave storage integration
+  * Define comprehensive metadata structure
+  * Establish minting access controls
+- User Flow Implementation
+  * Book creation and NFT minting interface
+  * Automated ERC20 token deployment
+  * Bonding curve parameter configuration
+  * Token-gated forum access system
+  * Forum creation automation
+- Integration Points
+  * Connect frontend to new contract system
+  * Implement token-gating middleware
+  * Add bonding curve visualization
+  * Create book creation wizard
 
 FEATURES
 - Content Management
@@ -59,3 +72,10 @@ FEATURES
   * User activity tracking
   * Contribution metrics
   * Achievement badges
+
+Technical Requirements:
+- Proxy contract architecture
+- Variable bonding curve mathematics
+- IPFS/Arweave integration
+- Token-gating logic
+- Forum access control system

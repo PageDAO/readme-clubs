@@ -59,198 +59,64 @@ type GetReservesResult = [bigint, bigint, number];
 const HomePage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [isUniswapModalOpen, setIsUniswapModalOpen] = useState(false);
-  const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
-  const [pagePrice, setPagePrice] = useState<number | null>(null);
-  const [tvl, setTvl] = useState<number | null>(null);
-
-  const { data: ethBalance } = useBalance({
-    address,
-  });
-
-  const { data: pageBalanceData } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS as Address,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-  }) as { data: bigint | undefined };
-
-  const { data: pageDecimals } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS as Address,
-    abi: ERC20_ABI,
-    functionName: 'decimals',
-  }) as { data: number | undefined };
-
-  const { data: lpReserves } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
-    abi: UNISWAP_V2_PAIR_ABI,
-    functionName: 'getReserves',
-  }) as { data: GetReservesResult | undefined };
-
-  const { data: token0 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
-    abi: UNISWAP_V2_PAIR_ABI,
-    functionName: 'token0',
-  }) as { data: Address | undefined };
-
-  const { data: token1 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
-    abi: UNISWAP_V2_PAIR_ABI,
-    functionName: 'token1',
-  }) as { data: Address | undefined };
-
-  // Fetch ETH/USD price
-  useEffect(() => {
-    const fetchEthUsdPrice = async () => {
-      try {
-        const response = await fetch(
-          `https://api.allorigins.win/get?url=${encodeURIComponent(
-            'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
-          )}`
-        );
-        const data = await response.json();
-        const ethPrice = JSON.parse(data.contents).ethereum.usd;
-        setEthUsdPrice(ethPrice);
-      } catch (error) {
-        console.error('Failed to fetch ETH/USD price:', error);
-      }
-    };
-
-    fetchEthUsdPrice();
-  }, []);
-
-  // Calculate prices and TVL
-  useEffect(() => {
-    if (lpReserves && token0 && token1 && ethUsdPrice && pageDecimals) {
-      const isPageToken0 = token0.toLowerCase() === PAGE_TOKEN_ADDRESS.toLowerCase();
-      
-      const [reserve0, reserve1] = lpReserves;
-      
-      const ethReserve = isPageToken0
-        ? Number(formatUnits(reserve1, 18))
-        : Number(formatUnits(reserve0, 18));
-      
-      const pageReserve = isPageToken0
-        ? Number(formatUnits(reserve0, Number(pageDecimals)))
-        : Number(formatUnits(reserve1, Number(pageDecimals)));
-
-      const pagePriceInUsd = (ethUsdPrice * ethReserve) / pageReserve;
-      setPagePrice(pagePriceInUsd);
-
-      const ethSideUsd = ethReserve * ethUsdPrice;
-      const pageSideUsd = pageReserve * pagePriceInUsd;
-      const totalTvlUsd = ethSideUsd + pageSideUsd;
-      setTvl(totalTvlUsd);
-
-      console.log({
-        isPageToken0,
-        ethReserve,
-        pageReserve,
-        ethUsdPrice,
-        pagePriceInUsd,
-        ethSideUsd,
-        pageSideUsd,
-        totalTvlUsd
-      });
-    }
-  }, [lpReserves, token0, token1, ethUsdPrice, pageDecimals]);
-
-  const pageBalance = pageBalanceData && pageDecimals
-    ? Number(formatUnits(pageBalanceData, pageDecimals))
-    : 0;
-
-  const ethBalanceUsd = ethBalance && ethUsdPrice
-    ? parseFloat(ethBalance.formatted) * ethUsdPrice
-    : 0;
-
-  const pageBalanceUsd = pagePrice !== null
-    ? pageBalance * pagePrice
-    : 0;
-
-  // Uniswap URL
-  const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PAGE_TOKEN_ADDRESS}&inputCurrency=ETH`;
 
   return (
-    <div className="p-4">
-      {/* Prices Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Token Prices</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <p className="text-gray-600">ETH Price</p>
-            <p className="text-2xl font-bold">
-              ${ethUsdPrice?.toFixed(2) ?? 'Loading...'}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <p className="text-gray-600">$PAGE Price</p>
-            <p className="text-2xl font-bold">
-              ${pagePrice?.toFixed(6) ?? 'Loading...'}
-            </p>
-          </div>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Hero Section */}
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          Welcome to Readme Clubs
+        </h1>
+        <p className="text-xl text-gray-600">
+          Join the decentralized reading revolution
+        </p>
       </div>
 
-      {/* TVL Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Total Value Locked (TVL)</h2>
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <p className="text-2xl font-bold">
-            ${tvl?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? 'Loading...'}
-          </p>
-        </div>
+      {/* Main Links Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <a 
+          href="https://pagedao.org" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+        >
+          <h2 className="text-xl font-bold mb-2">PageDAO</h2>
+          <p className="text-gray-600">Explore the PageDAO community and governance</p>
+        </a>
+
+        <a 
+          href="/forum" 
+          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+        >
+          <h2 className="text-xl font-bold mb-2">Club Forum</h2>
+          <p className="text-gray-600">Join discussions about your favorite books</p>
+        </a>
+
+        <a 
+          href="https://opensea.io/collection/readme-books" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+        >
+          <h2 className="text-xl font-bold mb-2">Readme Books</h2>
+          <p className="text-gray-600">Browse our NFT book collection on OpenSea</p>
+        </a>
       </div>
 
-      {/* Only show if connected */}
-      {isConnected && (
-        <>
-          {/* Balances Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Your Balances</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <p className="text-gray-600">ETH Balance</p>
-                <p className="text-2xl font-bold">
-                  {ethBalance ? `${parseFloat(ethBalance.formatted).toFixed(4)} ETH` : '0.0000 ETH'}
-                </p>
-                <p className="text-gray-600">
-                  ${ethBalanceUsd.toFixed(2)}
-                </p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <p className="text-gray-600">$PAGE Balance</p>
-                <p className="text-2xl font-bold">
-                  {pageBalance.toFixed(2)} $PAGE
-                </p>
-                <p className="text-gray-600">
-                  ${pageBalanceUsd.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* Token Section */}
+      <div className="bg-white p-8 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold mb-4">Get Started with $PAGE</h2>
+        <p className="text-gray-600 mb-4">
+          Join our community by acquiring $PAGE tokens and participating in governance
+        </p>
+        <button
+          onClick={() => setIsUniswapModalOpen(true)}
+          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Trade $PAGE
+        </button>
+      </div>
 
-          {/* Liquidity Pool Section */}
-          <div>
-            <h2 className="text-xl font-bold mb-4">Liquidity Pool</h2>
-            <div className="bg-white p-4 rounded-lg shadow-md">
-              <p className="text-gray-600">Provide liquidity and earn rewards.</p>
-              <button
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded mr-2"
-                onClick={() => setIsUniswapModalOpen(true)}
-              >
-                Trade $PAGE
-              </button>
-              <button
-                className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
-                onClick={() => window.open(uniswapUrl, '_blank')}
-              >
-                Go to Uniswap
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Uniswap Modal */}
       <UniswapModal
         isOpen={isUniswapModalOpen}
         onClose={() => setIsUniswapModalOpen(false)}

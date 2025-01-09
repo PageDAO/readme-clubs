@@ -4,8 +4,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrbisProvider } from './contexts/OrbisContext'
 import { ForumProvider } from './contexts/ForumContext'
 import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { mainnet } from 'viem/chains'
+import { mainnet, base } from 'viem/chains'
 import { http } from 'viem'
+import { connectorsForWallets } from '@rainbow-me/rainbowkit'
+import {
+  metaMaskWallet,
+  walletConnectWallet,
+  coinbaseWallet,
+} from '@rainbow-me/rainbowkit/wallets'
+import { WagmiConfig } from 'wagmi'
+
 
 // Import your components
 import HomePage from './pages/HomePage'
@@ -18,46 +26,65 @@ import AboutPage from './pages/AboutPage'
 import TokenPage from './pages/TokenPage'
 import BookList from './features/books/BookList'
 
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: 'Recommended',
+      wallets: [
+        metaMaskWallet,
+        walletConnectWallet,
+        coinbaseWallet
+      ]
+    }
+  ],
+  {
+    projectId: '5e709b61d319ac0c7d59daa4240e3daf',
+    appName: 'Readme Clubs'
+  }
+
+)
+
 const config = getDefaultConfig({
   appName: 'Readme Clubs',
   projectId: '5e709b61d319ac0c7d59daa4240e3daf',
-  chains: [mainnet],
+  chains: [base, mainnet],
   ssr: true,
   transports: {
-    '1': http()
+    [base.id]: http(),
+    [mainnet.id]: http()
   }
 })
 
+
 const queryClient = new QueryClient()
-
-function App() {
+function App() { 
   return (
-    <RainbowKitProvider modalSize="compact">
-      <QueryClientProvider client={queryClient}>
-        <OrbisProvider>
-          <ForumProvider>
-            <BrowserRouter>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/browse" element={<BrowseBooksPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/forum" element={<ForumPage />} />
-                  <Route path="/books/:bookId/forum" element={<ForumPage />} />
-                  <Route path="/books/:bookId/forum/:postId" element={<ForumPage />} />
-                  <Route path="/forum/:postId" element={<ForumPage />} />
-                  <Route path="/books" element={<BookList />} />
-                  <Route path="/book/:bookId" element={<DetailPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/page-token" element={<TokenPage />} />
-                </Routes>
-              </Layout>
-            </BrowserRouter>
-          </ForumProvider>
-        </OrbisProvider>
-      </QueryClientProvider>
-    </RainbowKitProvider>
+    <WagmiConfig config={config}>
+      <RainbowKitProvider>
+        <QueryClientProvider client={queryClient}>
+          <OrbisProvider>
+            <ForumProvider>
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/browse" element={<BrowseBooksPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/forum" element={<ForumPage />} />
+                    <Route path="/books/:bookId/forum" element={<ForumPage />} />
+                    <Route path="/books/:bookId/forum/:postId" element={<ForumPage />} />
+                    <Route path="/forum/:postId" element={<ForumPage />} />
+                    <Route path="/books" element={<BookList />} />
+                    <Route path="/book/:bookId" element={<DetailPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/page-token" element={<TokenPage />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </ForumProvider>
+          </OrbisProvider>
+        </QueryClientProvider>
+      </RainbowKitProvider>
+    </WagmiConfig>
   )
-}
-
-export default App
+}export default App
