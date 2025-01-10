@@ -154,24 +154,22 @@ const MintPage: React.FC = () => {
 
     setIsUploading(true);
     try {
+      const metadataInput: BookMetadataInput = {
+        title: mintTitle,
+        author: mintAuthor,
+        coverArtist,
+        bookType,
+        description: '', // Optional field
+        language: 'en', // Optional field
+      };
+
       const uploadResult = await uploadBookContent(
         coverImage,
         pdfFile,
         epubFile,
-        {
-          title: mintTitle,
-          author: mintAuthor,
-          coverArtist,
-          bookType,
-        },
+        metadataInput,
         walletClient,
-        // Add progress callback
-        (type, progress) => {
-          setUploadProgress(prev => ({
-            ...prev,
-            [type]: progress
-          }));
-        }
+        updateProgress
       );
 
       // Use the metadata hash for NFT minting

@@ -11,6 +11,7 @@
     "create-test-posts": "ts-node ./src/createTestPosts.ts"
   },
   "dependencies": {
+    "@bundlr-network/client": "^0.11.17",
     "@fontsource/ibm-plex-mono": "^5.1.1",
     "@fontsource/inter": "^5.1.1",
     "@keplr-wallet/wc-client": "^0.12.169",
@@ -27,6 +28,8 @@
     "@walletconnect/universal-provider": "^2.17.3",
     "@web3modal/ethereum": "^2.7.1",
     "@web3modal/react": "^2.7.1",
+    "arbundles": "^0.11.2",
+    "ardrive-core-js": "^2.0.7",
     "arweave": "^1.15.5",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
