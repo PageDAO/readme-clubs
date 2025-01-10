@@ -1,85 +1,171 @@
-import Arweave from 'arweave'
+import Arweave from 'arweave';
+import type { WalletClient } from 'viem';
+import { JWKInterface } from 'arweave/node/lib/wallet';
 
 const arweave = Arweave.init({
   host: 'arweave.net',
   port: 443,
-  protocol: 'https'
-})
+  protocol: 'https',
+  timeout: 60000,
+  logging: true,
+});
 
-interface BookContent {
-  pdf: File
-  epub: File
-  cover: File
-  metadata: {
-    title: string
-    author: string
-    description: string
-    formats: {
-      pdf: {
-        size: number
-        type: string
-      }
-      epub: {
-        size: number
-        type: string
-      }
+export interface BookMetadata {
+  title: string;
+  author: string;
+  coverArtist: string;
+  description?: string;
+  bookHash: string;
+  epubHash: string;
+  coverHash: string;
+  contentType: string;
+  language: string;
+  genre?: string;
+  bookType: string;
+  attributes?: Record<string, any>;
+  version: string;
+  uploadTimestamp: number;
+}
+
+export interface BookMetadataInput {
+  title: string;
+  author: string;
+  coverArtist: string;
+  bookType: string;
+  description?: string;
+  language?: string;
+  genre?: string;
+  attributes?: Record<string, any>;
+}
+
+const signatureToArweaveKey = (signature: `0x${string}`): JWKInterface => {
+  const signatureBytes = Buffer.from(signature.slice(2), 'hex');
+  return {
+    kty: 'RSA',
+    e: 'AQAB',
+    n: Buffer.from(signatureBytes).toString('base64'),
+    d: Buffer.from(signatureBytes).toString('base64')
+  };
+};
+
+export const uploadBookContent = async (
+  coverImage: File,
+  pdfFile: File,
+  epubFile: File,
+  metadataInput: BookMetadataInput,
+  walletClient: WalletClient,
+  onProgress: (type: 'cover' | 'pdf' | 'epub' | 'metadata', progress: number) => void
+) => {
+  try {
+    if (!walletClient.account) {
+      throw new Error('No wallet account found');
     }
-  }
-}
 
-interface ArweaveUploadResult {
-  pdfHash: string
-  epubHash: string
-  coverHash: string
-  metadataHash: string
-}
+    const address = walletClient.account.address;
+    const signedMessage = await walletClient.signMessage({
+      message: 'Authorize Arweave upload',
+      account: walletClient.account
+    });
 
-export class ArweaveService {
-  async uploadBookContent(content: BookContent): Promise<ArweaveUploadResult> {
-    // Upload PDF
-    const pdfTransaction = await arweave.createTransaction({
-      data: await content.pdf.arrayBuffer()
-    })
-    pdfTransaction.addTag('Content-Type', 'application/pdf')
-    pdfTransaction.addTag('App-Name', 'ReadmeClubs')
-    pdfTransaction.addTag('Format', 'PDF')
-    
-    // Upload EPUB
-    const epubTransaction = await arweave.createTransaction({
-      data: await content.epub.arrayBuffer()
-    })
-    epubTransaction.addTag('Content-Type', 'application/epub+zip')
-    epubTransaction.addTag('App-Name', 'ReadmeClubs')
-    epubTransaction.addTag('Format', 'EPUB')
+    const arweaveKey = signatureToArweaveKey(signedMessage);
 
-    // Upload cover
-    const coverTransaction = await arweave.createTransaction({
-      data: await content.cover.arrayBuffer()
-    })
-    coverTransaction.addTag('Content-Type', content.cover.type)
-    coverTransaction.addTag('App-Name', 'ReadmeClubs')
-    coverTransaction.addTag('Type', 'Cover')
+    const uploadWithProgress = async (
+      file: File,
+      type: 'cover' | 'pdf' | 'epub',
+      tags: { name: string; value: string }[]
+    ) => {
+      console.log(`Starting ${type} upload...`);
+      const data = await file.arrayBuffer();
+      const transaction = await arweave.createTransaction({ data });
 
-    // Create and upload metadata
+      tags.forEach(tag => transaction.addTag(tag.name, tag.value));
+      transaction.addTag('App', 'ReadmeBooks');
+      transaction.addTag('Publisher', address);
+
+      await arweave.transactions.sign(transaction, arweaveKey);
+      
+      const uploader = await arweave.transactions.getUploader(transaction);
+      while (!uploader.isComplete) {
+        await uploader.uploadChunk();
+        const progress = (uploader.uploadedChunks / uploader.totalChunks) * 100;
+        onProgress(type, Math.round(progress));
+        console.log(`${type} upload progress: ${progress}%`);
+      }
+
+      return transaction.id;
+    };
+
+    console.log('Starting file uploads...');
+    const results = await Promise.all([
+      uploadWithProgress(coverImage, 'cover', [
+        { name: 'Content-Type', value: coverImage.type },
+        { name: 'Type', value: 'Book-Cover' }
+      ]),
+      uploadWithProgress(pdfFile, 'pdf', [
+        { name: 'Content-Type', value: 'application/pdf' },
+        { name: 'Book-Type', value: metadataInput.bookType }
+      ]),
+      uploadWithProgress(epubFile, 'epub', [
+        { name: 'Content-Type', value: 'application/epub+zip' }
+      ])
+    ]);
+
+    const [coverHash, pdfHash, epubHash] = results;
+    console.log('File uploads complete', { coverHash, pdfHash, epubHash });
+
+    onProgress('metadata', 50);
     const metadata = {
-      ...content.metadata,
-      pdfHash: pdfTransaction.id,
-      epubHash: epubTransaction.id,
-      coverHash: coverTransaction.id
-    }
-    
+      ...metadataInput,
+      coverHash,
+      pdfHash,
+      epubHash,
+      version: '1.0',
+      uploadTimestamp: Date.now(),
+      publisher: address
+    };
+
     const metadataTransaction = await arweave.createTransaction({
       data: JSON.stringify(metadata)
-    })
-    metadataTransaction.addTag('Content-Type', 'application/json')
-    metadataTransaction.addTag('App-Name', 'ReadmeClubs')
-    metadataTransaction.addTag('Type', 'Metadata')
+    });
+
+    metadataTransaction.addTag('Content-Type', 'application/json');
+    metadataTransaction.addTag('App', 'ReadmeBooks');
+    metadataTransaction.addTag('Type', 'Book-Metadata');
+    
+    await arweave.transactions.sign(metadataTransaction, arweaveKey);
+    await arweave.transactions.post(metadataTransaction);
+    onProgress('metadata', 100);
 
     return {
-      pdfHash: pdfTransaction.id,
-      epubHash: epubTransaction.id,
-      coverHash: coverTransaction.id,
-      metadataHash: metadataTransaction.id
+      coverHash,
+      pdfHash,
+      epubHash,
+      metadataHash: metadataTransaction.id,
+      metadata
+    };
+
+  } catch (err: unknown) {
+    const error = err as ArweaveError;
+    console.error('Arweave upload error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+
+    if (error.message.includes('insufficient funds')) {
+      throw new Error('Insufficient funds for Arweave upload');
     }
+    if (error.message.includes('network')) {
+      throw new Error('Network error during upload');
+    }
+    throw new Error(`Upload failed: ${error.message || 'Unknown error occurred'}`);
   }
+};
+
+interface ArweaveError {
+  message: string;
+  name?: string;
+  stack?: string;
+  code?: string;
+  type?: string;
 }
