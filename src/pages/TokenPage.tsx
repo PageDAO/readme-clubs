@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useContractRead } from 'wagmi';
+import { useAccount, useBalance, useContractRead, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import type { Address } from 'viem';
 import UniswapModal from '../features/web3/UniswapModal';
-
-// Contract addresses
-const PAGE_TOKEN_ADDRESS = '0xc4730f86d1f86ce0712a7b17ee919db7defad7fe' as const;
-const LP_CONTRACT_ADDRESS = '0x7989DD74dF816A32EE0DaC0f3f8e24d740fc5cB2' as const;
+import { PAGE_TOKEN_ADDRESSES, LP_ADDRESSES } from '../config/contracts';
 
 // ABIs
 const ERC20_ABI = [
@@ -58,46 +55,53 @@ type GetReservesResult = [bigint, bigint, number];
 
 const TokenPage: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const [isUniswapModalOpen, setIsUniswapModalOpen] = useState(false);
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
   const [pagePrice, setPagePrice] = useState<number | null>(null);
   const [tvl, setTvl] = useState<number | null>(null);
+
+  const pageTokenAddress = PAGE_TOKEN_ADDRESSES[chainId] as Address;
+  console.log('Current chain ID:', chainId);
+  console.log('Using PAGE token address:', pageTokenAddress);
+  const lpContractAddress = LP_ADDRESSES[chainId] as Address;
+  console.log('LP Contract Address:', lpContractAddress);
+
 
   const { data: ethBalance } = useBalance({
     address,
   });
 
   const { data: pageBalanceData } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS as Address,
+    address: pageTokenAddress,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
   }) as { data: bigint | undefined };
 
   const { data: pageDecimals } = useContractRead({
-    address: PAGE_TOKEN_ADDRESS as Address,
+    address: pageTokenAddress,
     abi: ERC20_ABI,
     functionName: 'decimals',
   }) as { data: number | undefined };
 
   const { data: lpReserves } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
+    address: lpContractAddress,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'getReserves',
   }) as { data: GetReservesResult | undefined };
 
   const { data: token0 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
+    address: lpContractAddress,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token0',
   }) as { data: Address | undefined };
 
   const { data: token1 } = useContractRead({
-    address: LP_CONTRACT_ADDRESS as Address,
+    address: lpContractAddress,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token1',
   }) as { data: Address | undefined };
-
   // Fetch ETH/USD price
   useEffect(() => {
     const fetchEthUsdPrice = async () => {
@@ -121,7 +125,7 @@ const TokenPage: React.FC = () => {
   // Calculate prices and TVL
   useEffect(() => {
     if (lpReserves && token0 && token1 && ethUsdPrice && pageDecimals) {
-      const isPageToken0 = token0.toLowerCase() === PAGE_TOKEN_ADDRESS.toLowerCase();
+      const isPageToken0 = token0.toLowerCase() === pageTokenAddress.toLowerCase();
       
       const [reserve0, reserve1] = lpReserves;
       
@@ -167,7 +171,8 @@ const TokenPage: React.FC = () => {
     : 0;
 
   // Uniswap URL
-  const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PAGE_TOKEN_ADDRESS}&inputCurrency=ETH`;
+  const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${pageTokenAddress}&inputCurrency=ETH`;
+
 
   return (
     <div className="p-4">
@@ -260,3 +265,5 @@ const TokenPage: React.FC = () => {
 };
 
 export default TokenPage;
+
+

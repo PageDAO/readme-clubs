@@ -1,64 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useContractRead } from 'wagmi';
-import { formatUnits } from 'viem';
-import type { Address } from 'viem';
+import React, { useState } from 'react';
+import { useAccount, useChainId } from 'wagmi';
+import { PAGE_TOKEN_ADDRESSES } from '../config/contracts';
 import UniswapModal from '../features/web3/UniswapModal';
-
-// Contract addresses
-const PAGE_TOKEN_ADDRESS = '0xc4730f86d1f86ce0712a7b17ee919db7defad7fe' as const;
-const LP_CONTRACT_ADDRESS = '0x7989DD74dF816A32EE0DaC0f3f8e24d740fc5cB2' as const;
-
-// ABIs
-const ERC20_ABI = [
-  {
-    constant: true,
-    inputs: [{ name: '_owner', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: 'balance', type: 'uint256' }],
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', type: 'uint8' }],
-    type: 'function',
-  },
-] as const;
-
-const UNISWAP_V2_PAIR_ABI = [
-  {
-    constant: true,
-    inputs: [],
-    name: 'getReserves',
-    outputs: [
-      { name: 'reserve0', type: 'uint112' },
-      { name: 'reserve1', type: 'uint112' },
-      { name: 'blockTimestampLast', type: 'uint32' },
-    ],
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'token0',
-    outputs: [{ name: '', type: 'address' }],
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'token1',
-    outputs: [{ name: '', type: 'address' }],
-    type: 'function',
-  },
-] as const;
-
-type GetReservesResult = [bigint, bigint, number];
 
 const HomePage: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const [isUniswapModalOpen, setIsUniswapModalOpen] = useState(false);
+  const pageTokenAddress = PAGE_TOKEN_ADDRESSES[chainId];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

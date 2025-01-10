@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrbisProvider } from './contexts/OrbisContext'
 import { ForumProvider } from './contexts/ForumContext'
 import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { mainnet, base } from 'viem/chains'
+import { mainnet, base, sepolia } from 'viem/chains'
 import { http } from 'viem'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit'
 import {
@@ -13,7 +13,6 @@ import {
   coinbaseWallet,
 } from '@rainbow-me/rainbowkit/wallets'
 import { WagmiConfig } from 'wagmi'
-
 
 // Import your components
 import HomePage from './pages/HomePage'
@@ -41,22 +40,22 @@ const connectors = connectorsForWallets(
     projectId: '5e709b61d319ac0c7d59daa4240e3daf',
     appName: 'Readme Clubs'
   }
-
 )
 
 const config = getDefaultConfig({
   appName: 'Readme Clubs',
   projectId: '5e709b61d319ac0c7d59daa4240e3daf',
-  chains: [base, mainnet],
+  chains: [base, sepolia, mainnet],
   ssr: true,
   transports: {
     [base.id]: http(),
+    [sepolia.id]: http(),
     [mainnet.id]: http()
   }
 })
 
-
 const queryClient = new QueryClient()
+
 function App() { 
   return (
     <WagmiConfig config={config}>
@@ -87,4 +86,6 @@ function App() {
       </RainbowKitProvider>
     </WagmiConfig>
   )
-}export default App
+}
+
+export default App

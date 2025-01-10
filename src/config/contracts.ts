@@ -1,0 +1,31 @@
+export const PAGE_TOKEN_ADDRESSES = {
+    // Base Mainnet
+    8453: '0xc4730f86d1f86ce0712a7b17ee919db7defad7fe',
+    // Sepolia
+    11155111: '0xBfce153c455190d92C5504C63CE51637433acC68'
+  } as const
+  
+  export const LP_ADDRESSES = {
+    8453: '0x7989DD74dF816A32EE0DaC0f3f8e24d740fc5cB2',
+    11155111: '0x447287c2207c77395d2f3365c73c86A406FA87DA'
+  } as const
+  
+  export const CONTRACTS = {
+    // Core Protocol Contracts
+    MY_README_NFT: "0x9d1CdD84c53Ec745b03aB1E94327068538FE2449",
+    KEY_FACTORY: "0x84181c79c9291ab4ADa6dCFD3a4DBEdB0713C9De",
+    README_1155: "0x852c5cA39fD619C1a83e0d17A8aAC8F81ae184cE",
+    LPT_STAKING: "0x3E09D2367703b24B9E08d7582EfC28eD908e7e41",
+    
+    // ERC6551 Infrastructure
+    ERC6551_IMPLEMENTATION: "0x95Db94e87877eFD2821b5CBE7C3eaf344628ff80",
+    ERC6551_REGISTRY: "0x000000006551c19487814612e58FE06813775758"
+  } as const
+  
+  // Additional protocol constants
+  export const PROTOCOL_CONSTANTS = {
+    MINTING_FEE: 100, // 100 PAGE tokens
+    LP_STAKING_SHARE: 0.3, // 30% to LP Staking
+    BONDING_CURVE_SHARE: 0.7 // 70% to bonding curve
+  } as const
+  

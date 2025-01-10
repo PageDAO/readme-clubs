@@ -27,6 +27,7 @@
     "@walletconnect/universal-provider": "^2.17.3",
     "@web3modal/ethereum": "^2.7.1",
     "@web3modal/react": "^2.7.1",
+    "arweave": "^1.15.5",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",

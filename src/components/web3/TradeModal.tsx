@@ -1,9 +1,9 @@
 import React from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { SwapWidget } from '@uniswap/widgets'; // Corrected import
+import { SwapWidget } from '@uniswap/widgets';
+import { PAGE_TOKEN_ADDRESSES } from '../../config/contracts';
 
 const WETH_ADDRESS = '0x4200000000000000000000000000000000000006';
-const PAGE_TOKEN_ADDRESS = '0xc4730f86d1F86cE0712a7b17EE919Db7dEFad7FE';
 
 interface SwapWidgetProps {
   jsonRpcUrlMap: Record<number, string[]>;
@@ -24,6 +24,7 @@ const TradeModal = ({ isOpen, onClose }) => {
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const pageTokenAddress = PAGE_TOKEN_ADDRESSES[chainId];
 
   if (!isOpen) return null;
 
@@ -41,19 +42,20 @@ const TradeModal = ({ isOpen, onClose }) => {
           <SwapWidget
             jsonRpcUrlMap={{
               8453: ['https://mainnet.base.org'],
+              84532: ['https://sepolia.base.org'],
             }}
             tokenList={[
               {
-                address: PAGE_TOKEN_ADDRESS,
+                address: pageTokenAddress,
                 name: 'Page',
                 symbol: 'PAGE',
                 decimals: 8,
-                chainId: 8453,
+                chainId,
                 logoURI: 'https://avatars.githubusercontent.com/u/91643378?s=200&v=4',
               },
             ]}
             defaultInputTokenAddress={WETH_ADDRESS}
-            defaultOutputTokenAddress={PAGE_TOKEN_ADDRESS}
+            defaultOutputTokenAddress={pageTokenAddress}
             width="100%"
           /> as SwapWidgetProps
         </div>
