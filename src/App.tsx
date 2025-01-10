@@ -1,29 +1,30 @@
-import '@rainbow-me/rainbowkit/styles.css'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { OrbisProvider } from './contexts/OrbisContext'
-import { ForumProvider } from './contexts/ForumContext'
-import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { mainnet, base, sepolia } from 'viem/chains'
-import { http } from 'viem'
-import { connectorsForWallets } from '@rainbow-me/rainbowkit'
+import '@rainbow-me/rainbowkit/styles.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OrbisProvider } from './contexts/OrbisContext';
+import { ForumProvider } from './contexts/ForumContext';
+import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { mainnet, base, sepolia } from 'viem/chains';
+import { http } from 'viem';
+import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
   metaMaskWallet,
   walletConnectWallet,
   coinbaseWallet,
-} from '@rainbow-me/rainbowkit/wallets'
-import { WagmiConfig } from 'wagmi'
+} from '@rainbow-me/rainbowkit/wallets';
+import { WagmiProvider } from 'wagmi';
 
 // Import your components
-import HomePage from './pages/HomePage'
-import BrowseBooksPage from './pages/BrowseBooksPage'
-import ProfilePage from './pages/ProfilePage'
-import ForumPage from './pages/ForumPage'
-import DetailPage from './pages/DetailPage'
-import Layout from './components/layout/Layout'
-import AboutPage from './pages/AboutPage'
-import TokenPage from './pages/TokenPage'
-import BookList from './features/books/BookList'
+import HomePage from './pages/HomePage';
+import BrowseBooksPage from './pages/BrowseBooksPage';
+import ProfilePage from './pages/ProfilePage';
+import ForumPage from './pages/ForumPage';
+import DetailPage from './pages/DetailPage';
+import Layout from './components/layout/Layout';
+import AboutPage from './pages/AboutPage';
+import TokenPage from './pages/TokenPage';
+import BookList from './features/books/BookList';
+import MintPage from './pages/MintPage'; // Import the new MintPage
 
 const connectors = connectorsForWallets(
   [
@@ -32,15 +33,15 @@ const connectors = connectorsForWallets(
       wallets: [
         metaMaskWallet,
         walletConnectWallet,
-        coinbaseWallet
-      ]
-    }
+        coinbaseWallet,
+      ],
+    },
   ],
   {
     projectId: '5e709b61d319ac0c7d59daa4240e3daf',
-    appName: 'Readme Clubs'
+    appName: 'Readme Clubs',
   }
-)
+);
 
 const config = getDefaultConfig({
   appName: 'Readme Clubs',
@@ -50,15 +51,15 @@ const config = getDefaultConfig({
   transports: {
     [base.id]: http(),
     [sepolia.id]: http(),
-    [mainnet.id]: http()
-  }
-})
+    [mainnet.id]: http(),
+  },
+});
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
-function App() { 
+function App() {
   return (
-    <WagmiConfig config={config}>
+    <WagmiProvider config={config}>
       <RainbowKitProvider>
         <QueryClientProvider client={queryClient}>
           <OrbisProvider>
@@ -77,6 +78,7 @@ function App() {
                     <Route path="/book/:bookId" element={<DetailPage />} />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/page-token" element={<TokenPage />} />
+                    <Route path="/mint" element={<MintPage />} /> {/* Add the MintPage route */}
                   </Routes>
                 </Layout>
               </BrowserRouter>
@@ -84,8 +86,8 @@ function App() {
           </OrbisProvider>
         </QueryClientProvider>
       </RainbowKitProvider>
-    </WagmiConfig>
-  )
+    </WagmiProvider>
+  );
 }
 
-export default App
+export default App;

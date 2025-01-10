@@ -9,57 +9,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Define the navigation items
+  const navItems = [
+    { path: '/', label: 'Home' },
+    { path: '/browse', label: 'Browse Books' },
+    { path: '/profile', label: 'Profile' },
+    { path: '/forum', label: 'Forum' },
+    { path: '/page-token', label: 'Page Token' },
+    { path: '/mint', label: 'Mint a Book' }, // Add the new Mint route
+    { path: '/about', label: 'About' },
+  ];
+
   return (
     <div className={`w-64 p-4 bg-white shadow-md ${isCollapsed ? 'hidden' : 'block'}`}>
       <h2 className="text-xl font-bold mb-4">Navigation</h2>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/')}
-      >
-        Home
-      </button>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/browse' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/browse')}
-      >
-        Browse Books
-      </button>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/profile' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/profile')}
-      >
-        Profile
-      </button>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/forum' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/forum')}
-      >
-        Forum
-      </button>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/page-token' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/page-token')}
-      >
-        Page Token
-      </button>
-      <button
-        className={`w-full text-left p-2 mb-2 rounded ${
-          location.pathname === '/about' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
-        }`}
-        onClick={() => navigate('/about')}
-      >
-        About
-      </button>
+      {navItems.map((item) => (
+        <button
+          key={item.path}
+          className={`w-full text-left p-2 mb-2 rounded transition-colors ${
+            location.pathname === item.path
+              ? 'bg-blue-700 text-white'
+              : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
+          onClick={() => navigate(item.path)}
+        >
+          {item.label}
+        </button>
+      ))}
     </div>
   );
 };
