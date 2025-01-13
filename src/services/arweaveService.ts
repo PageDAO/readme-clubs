@@ -63,14 +63,15 @@ export const uploadBookContent = async (
     formData.append('signature', signature);
     formData.append('walletAddress', walletClient.account.address);
 
-    const response = await fetch('/.netlify/functions/upload', {
+    const response = await fetch('http://localhost:4000/.netlify/functions/upload', {
       method: 'POST',
       body: formData
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Upload failed: ${errorData.message || response.statusText}`);
+      const errorText = await response.text();
+      console.log('Server error response:', errorText);
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
     // Simulate progress updates while the serverless function processes the upload
