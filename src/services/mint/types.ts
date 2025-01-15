@@ -38,6 +38,7 @@ export interface FileUploadResponse {
 
 export interface PublicMintResponse {
   contentHash: string;
+  metadataHash: string;
   files: {
     [key: string]: {
       fileId: string;

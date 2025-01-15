@@ -12,12 +12,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
   // Define the navigation items
   const navItems = [
     { path: '/', label: 'Home' },
-    { path: '/browse', label: 'Browse Books' },
-    { path: '/profile', label: 'Profile' },
+    { path: '/Polygon', label: 'Browse Books on Polygon' },
     { path: '/forum', label: 'Forum' },
     { path: '/page-token', label: 'Page Token' },
     { path: '/mint', label: 'Mint a Book' }, // Add the new Mint route
-    { path: '/about', label: 'About' },
   ];
 
   return (

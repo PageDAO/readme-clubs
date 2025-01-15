@@ -37,6 +37,43 @@ Minting Infrastructure
 ✅ Integration with Readme1155v1 (0x852c5cA39fD619C1a83e0d17A8aAC8F81ae184cE)
 ✅ Transaction confirmation handling
 
+FRONTEND USER/DRAFT MANAGEMENT
+- Frontend Implementation
+  * Add draft status indicators in MintPage
+  * Create DraftsList component for user's in-progress mints
+  * Implement draft restoration from Arweave/backend
+  * Add progress tracking UI for each draft
+- State Management
+  * Track mint phase per draft
+  * Store form data with wallet association
+  * Handle page refresh/resume scenarios
+  * Cache draft metadata locally
+- User Experience
+  * Show draft count in header
+  * Add draft management dashboard
+  * Display completion percentage
+  * Enable draft deletion/archiving
+
+BACKEND USER/DRAFT INFRASTRUCTURE
+- Implement serverless database (DynamoDB)
+  * Wallet address to directoryId mapping
+  * Mint status tracking
+  * Transaction history
+- Create Netlify Functions
+  * Wallet verification endpoints
+  * Arweave data retrieval
+  * Progress state management
+- Index Management
+  * Track in-progress mints
+  * Store completion status
+  * Map wallet addresses to projects
+
+Technical Requirements:
+- DynamoDB table design
+- Serverless function architecture
+- CDN optimization strategy
+
+
 Remaining:
 - Comprehensive metadata management
   * Complete metadata collection form
@@ -66,6 +103,23 @@ Remaining:
   * Minting progress visualization
   * Transaction status indicators
   * Confirmation handling improvements
+
+REBRANDING AND SCOPE EXPANSION
+- Rename core types from Book to Lit
+  * LitMetadata
+  * LitForum
+  * LitNFT
+- Update component hierarchy
+  * LitForumPage
+  * LitTokenPage
+  * CreateLitForm
+- Revise contract naming
+  * LIT_1155
+  * LitFactory
+  * LitToken
+- Refactor service layer
+  * litMintService
+  * litForumService
 
 PRIORITY 1 - SMART CONTRACT INTEGRATION
 

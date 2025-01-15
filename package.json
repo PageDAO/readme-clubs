@@ -31,6 +31,7 @@
     "arbundles": "^0.11.2",
     "ardrive-core-js": "^2.0.7",
     "arweave": "^1.15.5",
+    "axios": "^1.7.9",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",

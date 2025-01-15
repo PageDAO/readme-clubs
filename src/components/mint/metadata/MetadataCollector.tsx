@@ -3,9 +3,18 @@ import { LanguageSelect } from './LanguageSelect';
 import { BisacSelect } from './BisacSelect';
 import type { EnhancedBookMetadata } from '../../../services/mint/types';
 
-export const MetadataCollector: React.FC<{
-  onMetadataComplete: (metadata: EnhancedBookMetadata) => void;
-}> = ({ onMetadataComplete }) => {
+interface MetadataCollectorProps {
+  onMetadataComplete: (metadata: EnhancedBookMetadata) => void
+  initialData?: {
+    title: string
+    author: string
+    coverArtist: string
+    tokenTicker: string
+    bookType: string
+  }
+}
+
+export const MetadataCollector: React.FC<MetadataCollectorProps> = ({ onMetadataComplete, initialData }) => {
   const [metadata, setMetadata] = useState<EnhancedBookMetadata>({
     title: '',
     author: '',

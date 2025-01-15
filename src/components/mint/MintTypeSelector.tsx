@@ -1,10 +1,4 @@
-export enum MintType {
-  PUBLIC = 'public',
-  PRIVATE = 'private',
-  TURBO = 'turbo'
-}
-
-const MintTypeSelector: React.FC<{
+export const MintTypeSelector: React.FC<{
   selected: MintType;
   onSelect: (type: MintType) => void;
 }> = ({ selected, onSelect }) => {
@@ -20,3 +14,9 @@ const MintTypeSelector: React.FC<{
     </select>
   );
 };
+
+export enum MintType {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  TURBO = 'turbo'
+}

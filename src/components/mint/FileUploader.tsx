@@ -1,12 +1,40 @@
 import { useState } from 'react';
 import { publicMintService } from '../../services/mint/publicMintService';
-import type { EnhancedBookMetadata } from '../../services/mint/types';
+import type { EnhancedBookMetadata, PublicMintResponse } from '../../services/mint/types';
 
-export const FileUploader: React.FC<{
-  metadata: EnhancedBookMetadata;
-  directoryId: string;
-}> = ({ metadata, directoryId }) => {
-  const [files, setFiles] = useState<{
+
+interface FileUploaderProps {
+  metadata: EnhancedBookMetadata
+  directoryId: string
+  onUploadComplete: (result: PublicMintResponse) => void
+  onFileSelect: {
+    cover: (file: File | null) => void
+    pdf: (file: File | null) => void
+    epub: (file: File | null) => void
+  }
+  fileInfo: {
+    coverSize: number
+    pdfSize: number
+    epubSize: number
+  }
+  uploadProgress: {
+    cover: number
+    pdf: number
+    epub: number
+    metadata: number
+  }
+  updateProgress: (type: string, progress: number) => void
+}
+
+export const FileUploader: React.FC<FileUploaderProps> = ({
+  metadata,
+  directoryId,
+  onUploadComplete,
+  onFileSelect,
+  fileInfo,
+  uploadProgress,
+  updateProgress
+}) => {  const [files, setFiles] = useState<{
     cover: File | null;
     pdf: File | null;
     epub: File | null;
@@ -21,9 +49,7 @@ export const FileUploader: React.FC<{
   }>({});
 
   const handleUpload = async () => {
-    if (!files.cover || !files.pdf || !files.epub) {
-      return;
-    }
+    if (!files.cover || !files.pdf || !files.epub) return;
 
     const result = await publicMintService.uploadFiles(directoryId, {
       cover: files.cover,
@@ -34,10 +60,15 @@ export const FileUploader: React.FC<{
     // Monitor upload status
     const fileIds = Object.values(result.files).map(f => f.fileId);
     const status = await publicMintService.checkArweaveStatus(fileIds, 'file');
+    
+    if (Object.values(status).every(s => s)) {
+      onUploadComplete(result);
+    }
   };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow space-y-6">
-      <h2 className="text-xl font-bold">Upload Files</h2>
+      <h2 className="text-xl font-bold">Upload Files for {metadata.title}</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {['cover', 'pdf', 'epub'].map((type) => (
