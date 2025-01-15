@@ -1,0 +1,41 @@
+# Readme Clubs Public Mint Implementation
+
+## Services
+/src/services/mint/
+- publicMintService.ts
+- privateMintService.ts (future)
+- turboMintService.ts (future)
+
+## Components
+/src/components/mint/
+- MintTypeSelector.tsx
+- MetadataForm.tsx
+- DirectoryStatus.tsx
+- FileUploader.tsx
+- StatusChecker.tsx
+- PublicMintFlow.tsx (container)
+
+## Implementation Order
+
+1. Public Mint Service
+- Initialize mint function
+- Directory status checker
+- File upload handler
+- File status checker
+
+2. UI Components
+- Basic metadata form with mint type selector
+- Directory status display and refresh
+- File upload interface with confirmation
+- Progress indicators and status management
+
+3. State Management
+- Directory creation status
+- Upload progress tracking
+- Transaction confirmations
+- Error handling
+
+4. Integration Testing
+- Directory creation flow
+- File upload process
+- Status checking mechanisms
