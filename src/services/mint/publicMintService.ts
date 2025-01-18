@@ -1,11 +1,18 @@
-import type { EnhancedBookMetadata, MintFiles, PublicMintResponse } from './types';
+import type { 
+  EnhancedBookMetadata, 
+  MintFiles, 
+  PublicMintResponse, 
+  DirectoryStatusResponse,
+  InitializationResponse 
+} from './types';
 import type { WalletClient } from 'viem';
+import { checkArweaveStatus } from '../arweave/statusCheck';
 
 export const publicMintService = {
   initializeMint: async (
     metadata: EnhancedBookMetadata,
     walletClient: WalletClient
-  ): Promise<{ directoryId: string }> => {
+  ): Promise<InitializationResponse> => {
     if (!walletClient.account) {
       throw new Error('Wallet not connected');
     }
@@ -22,20 +29,13 @@ export const publicMintService = {
     });
 
     return response.json();
-  },
-  checkArweaveStatus: async (
+  },  checkArweaveStatus: async (
     ids: string[], 
     type: 'directory' | 'file'
   ): Promise<{ [id: string]: boolean }> => {
-    const response = await fetch('/.netlify/functions/checkStatus', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids, type })
-    });
-
-    return response.json();
+    const status = await checkArweaveStatus(ids[0], 'public');
+    return { [ids[0]]: status };
   },
-
   uploadFiles: async (
     directoryId: string, 
     files: MintFiles

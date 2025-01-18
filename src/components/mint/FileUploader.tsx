@@ -23,7 +23,7 @@ interface FileUploaderProps {
     epub: number
     metadata: number
   }
-  updateProgress: (type: string, progress: number) => void
+  updateProgress: (type: "cover" | "pdf" | "epub" | "metadata", progress: number) => void
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({

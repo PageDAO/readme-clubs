@@ -128,13 +128,17 @@ const MintPage: React.FC = () => {
     }
   }, [isConfirmed, mintedTokenId]);
 
+  const [metadataTxId, setMetadataTxId] = useState<string | undefined>(undefined);
+
   const handleMetadataSubmit = async (metadata: EnhancedBookMetadata) => {
     if (!walletClient) return;
-    
     try {
       const result = await publicMintService.initializeMint(metadata, walletClient);
+      console.log('Metadata submit result:', result);
+      
       setMetadata(metadata);
       setDirectoryId(result.directoryId);
+      setMetadataTxId(result.metadataTxId); 
       setPhase('directory');
     } catch (error) {
       console.error('Failed to initialize mint:', error);
@@ -163,30 +167,36 @@ const MintPage: React.FC = () => {
       setIsUploading(false);
     }
   };
-
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-8">Mint a New NFT</h1>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <MintTypeSelector selected={mintType} onSelect={setMintType} />
-
         {phase === 'metadata' && (
-          <MetadataCollector 
-            onMetadataComplete={handleMetadataSubmit}
-            initialData={{
-              title: mintTitle,
-              author: mintAuthor,
-              coverArtist,
-              tokenTicker,
-              bookType
-            }}
-          />
+          <>
+            <MintTypeSelector 
+              selected={mintType} 
+              onSelect={setMintType}
+            />
+            <div className="mt-6">
+              <MetadataCollector 
+                onMetadataComplete={handleMetadataSubmit}
+                initialData={{
+                  title: mintTitle,
+                  author: mintAuthor,
+                  coverArtist,
+                  tokenTicker,
+                  bookType
+                }}
+              />
+            </div>
+          </>
         )}
 
         {phase === 'directory' && directoryId && (
           <DirectoryStatus 
             directoryId={directoryId}
+            metadataTxId={metadataTxId}
             onConfirmed={() => setPhase('upload')}
           />
         )}
@@ -223,8 +233,7 @@ const MintPage: React.FC = () => {
       </div>
     </div>
   );
-};
-
+}
 export default MintPage;
 
 

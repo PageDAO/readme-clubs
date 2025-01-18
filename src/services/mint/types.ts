@@ -46,3 +46,33 @@ export interface PublicMintResponse {
     }
   }
 }
+
+export interface DirectoryStatusResponse {
+  status: 'success';
+  directoryStatus: {
+    type: 'public' | 'private' | 'turbo';
+    exists: boolean;
+    ready: boolean;
+    folderName: string;
+    transactionId: string;
+    transactionStatus: string;
+    createdAt?: number;
+    isPrivate: boolean;
+  };
+  message: string;
+}
+
+interface CreatedEntity {
+  type: 'folder';
+  metadataTxId: string;
+  entityId: string;
+  entityName: string;
+}
+
+export interface InitializationResponse {
+  status: 'pending';
+  directoryId: string;
+  metadataTxId: string;  // Add this field
+  metadata: EnhancedBookMetadata;
+  message: string;
+}
