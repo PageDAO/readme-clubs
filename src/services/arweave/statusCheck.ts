@@ -1,14 +1,14 @@
+import type { EnhancedBookMetadata } from '../mint/types'
+
 export interface DirectoryStatusResponse {
-  status: 'success' | 'error'
+  status: string
   directoryStatus: {
-    exists: boolean
     ready: boolean
-    transactionStatus: string
-    message: string
+    // other status fields
   }
+  metadata: EnhancedBookMetadata
   message: string
 }
-
 export const checkArweaveStatus = async (
     txId: string, 
     type: 'public' | 'private' | 'turbo'

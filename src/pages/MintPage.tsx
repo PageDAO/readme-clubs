@@ -8,6 +8,8 @@ import { FileUploader } from '../components/mint/FileUploader';
 import { MintTypeSelector, MintType } from '../components/mint/MintTypeSelector';
 import { publicMintService } from '../services/mint/publicMintService';
 import type { EnhancedBookMetadata, PublicMintResponse } from '../services/mint/types';
+import { MintMenu } from '../components/mint/MintMenu';
+import { checkArweaveStatus, type DirectoryStatusResponse } from '../services/arweave/statusCheck';
 
 const README_1155_ABI = [
   {
@@ -33,6 +35,7 @@ const MintPage: React.FC = () => {
   // Phase and type management
   const [phase, setPhase] = useState<'metadata' | 'directory' | 'upload'>('metadata');
   const [mintType, setMintType] = useState<MintType>(MintType.PUBLIC);
+  const [mintFlow, setMintFlow] = useState<'menu' | 'new' | 'resume'>('menu');
   
   // File states
   const [coverImage, setCoverImage] = useState<File | null>(null);
@@ -131,15 +134,16 @@ const MintPage: React.FC = () => {
   const [metadataTxId, setMetadataTxId] = useState<string | undefined>(undefined);
 
   const handleMetadataSubmit = async (metadata: EnhancedBookMetadata) => {
+    console.log('Metadata submitted:', metadata);
     if (!walletClient) return;
     try {
       const result = await publicMintService.initializeMint(metadata, walletClient);
-      console.log('Metadata submit result:', result);
+      console.log('Initialization result:', result);
       
       setMetadata(metadata);
       setDirectoryId(result.directoryId);
-      setMetadataTxId(result.metadataTxId); 
       setPhase('directory');
+      console.log('State updated after initialization');
     } catch (error) {
       console.error('Failed to initialize mint:', error);
     }
@@ -167,17 +171,51 @@ const MintPage: React.FC = () => {
       setIsUploading(false);
     }
   };
+  if (mintFlow === 'menu') {
+    return (
+      <MintMenu
+        onNewMint={() => {
+          setMintFlow('new');
+          setPhase('metadata');
+        }}
+        onResumeMint={async (txId) => {
+          try {
+            const result = await checkArweaveStatus(txId, 'public');
+            
+            if (result.directoryStatus.ready) {
+              // Use metadata directly from the status response
+              setMetadata(result.metadata);
+              setMetadataTxId(txId);
+              setDirectoryId(txId);
+              setPhase('upload');
+              setMintFlow('resume');
+            }
+          } catch (error) {
+            console.error('Failed to resume mint:', error);
+            // Add appropriate error handling
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="p-4">
+      <div className="mb-4 p-2 bg-gray-100 rounded">
+        <pre>
+          {JSON.stringify({
+            phase,
+            mintFlow,
+            hasMetadata: !!metadata,
+            hasDirectoryId: !!directoryId
+          }, null, 2)}
+        </pre>
+      </div>
       <h1 className="text-2xl font-bold mb-8">Mint a New NFT</h1>
-
       <div className="bg-white p-6 rounded-lg shadow-md">
-        {phase === 'metadata' && (
+        {mintFlow === 'new' && phase === 'metadata' && (
           <>
-            <MintTypeSelector 
-              selected={mintType} 
-              onSelect={setMintType}
-            />
+            <MintTypeSelector selected={mintType} onSelect={setMintType} />
             <div className="mt-6">
               <MetadataCollector 
                 onMetadataComplete={handleMetadataSubmit}
@@ -216,24 +254,8 @@ const MintPage: React.FC = () => {
             updateProgress={updateProgress}
           />
         )}
-
-        {isConfirming && (
-          <p className="mt-4 text-gray-600">Confirming transaction...</p>
-        )}
-        
-        {isConfirmed && (
-          <div className="mt-4 p-4 bg-green-50 rounded">
-            <p className="text-green-600">NFT minted successfully!</p>
-            <p className="text-sm break-all">Token ID: {mintedTokenId?.toString()}</p>
-            {keyTokenAddress && (
-              <p className="text-sm break-all">Key Token: {keyTokenAddress}</p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 export default MintPage;
-
-

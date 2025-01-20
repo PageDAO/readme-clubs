@@ -3,15 +3,17 @@ import { checkArweaveStatus, type DirectoryStatusResponse } from '../../services
 
 interface DirectoryStatusProps {
   directoryId: string;
-  metadataTxId?: string; // Make it optional with ?
+  metadataTxId?: string;
   onConfirmed: () => void;
 }
+
 // Define just the status type we need
 type DirectoryStatus = {
   exists: boolean;
   ready: boolean;
   transactionStatus: string;
   message: string;
+  estimatedConfirmation?: number;
 };
 
 export const DirectoryStatus: React.FC<DirectoryStatusProps> = ({ 
@@ -22,6 +24,20 @@ export const DirectoryStatus: React.FC<DirectoryStatusProps> = ({
   const [status, setStatus] = useState<DirectoryStatus | null>(null);
   const [checkCount, setCheckCount] = useState(0);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [submissionTime] = useState<Date>(new Date());
+  const [elapsedTime, setElapsedTime] = useState<string>('');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const elapsed = now.getTime() - submissionTime.getTime();
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      setElapsedTime(`${minutes}m ${seconds}s`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [submissionTime]);
 
   const checkStatus = async () => {
     if (!metadataTxId) {
@@ -39,7 +55,12 @@ export const DirectoryStatus: React.FC<DirectoryStatusProps> = ({
       
       // Now in the success case:
       if (result.directoryStatus) {
-        setStatus(result.directoryStatus);
+              setStatus({
+                exists: true,
+                ready: result.directoryStatus.ready,
+                transactionStatus: 'confirmed',
+                message: result.message
+              });
         setLastCheckTime(new Date());
         setCheckCount(prev => prev + 1);
         
@@ -90,12 +111,20 @@ export const DirectoryStatus: React.FC<DirectoryStatusProps> = ({
         </div>
         
         <div className="bg-gray-50 p-4 rounded-lg">
+          <p className="text-sm text-gray-600">
+            Time elapsed: {elapsedTime}
+          </p>
           <p className="text-sm font-medium text-gray-700 mb-2">
             Directory ID: {directoryId}
           </p>
           {status && (
             <p className="text-sm text-gray-600">
               Status: {status.message}
+            </p>
+          )}
+          {status?.estimatedConfirmation && (
+            <p className="text-sm text-gray-600">
+              Estimated time until confirmed: {Math.ceil(status.estimatedConfirmation / 60)} minutes
             </p>
           )}
           {checkCount > 0 && (
@@ -105,7 +134,6 @@ export const DirectoryStatus: React.FC<DirectoryStatusProps> = ({
           )}
         </div>
       </div>
-
       <div className="border-t pt-4">
         <h3 className="text-lg font-semibold text-gray-700 mb-3">
           What's happening?

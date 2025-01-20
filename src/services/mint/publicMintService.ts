@@ -29,27 +29,53 @@ export const publicMintService = {
     });
 
     return response.json();
-  },  checkArweaveStatus: async (
-    ids: string[], 
+  },
+  
+  getMetadata: async (txId: string): Promise<EnhancedBookMetadata> => {
+    const response = await fetch(`/.netlify/functions/get-metadata?txId=${txId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch metadata');
+    }
+
+    return response.json();
+  },
+
+  checkArweaveStatus: async (
+    ids: string[],
     type: 'directory' | 'file'
   ): Promise<{ [id: string]: boolean }> => {
     const status = await checkArweaveStatus(ids[0], 'public');
-    return { [ids[0]]: status };
+    return { [ids[0]]: status.directoryStatus.ready };
   },
+
   uploadFiles: async (
-    directoryId: string, 
+    directoryId: string,
     files: MintFiles
   ): Promise<PublicMintResponse> => {
-    const formData = new FormData();
-    formData.append('directoryId', directoryId);
-    formData.append('coverFile', files.cover);
-    formData.append('pdfFile', files.pdf);
-    formData.append('epubFile', files.epub);
+  const formData = new FormData();
+  formData.append('coverImage', files.cover, files.cover.name);
+  formData.append('pdfFile', files.pdf, files.pdf.name);
+  formData.append('epubFile', files.epub, files.epub.name);
+  formData.append('directoryId', directoryId);
+    console.log('Uploading files:', {
+      directoryId,
+      fileNames: {
+        cover: files.cover.name,
+        pdf: files.pdf.name,
+        epub: files.epub.name
+      }
+    });
 
     const response = await fetch('/.netlify/functions/completePublicMint', {
       method: 'POST',
       body: formData
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Server error response:', errorText);
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
 
     return response.json();
   }
