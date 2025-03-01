@@ -4,6 +4,8 @@ node_modules/
 # Ignore build output
 dist/
 
+package-lock.json
+
 # Ignore environment variables
 .env
 .env.local
