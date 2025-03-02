@@ -106,10 +106,7 @@ export function useEthereumChainData(): EthereumChainData {
     address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'getReserves',
-    chainId: 1,
-    query: {
-      enabled: false // Disable for now until we have the actual LP address
-    }
+    chainId: 1
   }) as { data: GetReservesResult | undefined };
 
   // Determine which token in the pair is PAGE
@@ -117,20 +114,14 @@ export function useEthereumChainData(): EthereumChainData {
     address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token0',
-    chainId: 1,
-    query: {
-      enabled: false // Disable for now until we have the actual LP address
-    }
+    chainId: 1
   }) as { data: Address | undefined };
 
   const { data: token1 } = useContractRead({
     address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token1',
-    chainId: 1,
-    query: {
-      enabled: false // Disable for now until we have the actual LP address
-    }
+    chainId: 1
   }) as { data: Address | undefined };
 
   // Format user's PAGE balance
@@ -169,9 +160,15 @@ export function useEthereumChainData(): EthereumChainData {
 
   // Calculate token price and TVL from LP reserves
   const calculatePriceAndTVL = useCallback((ethPrice: number) => {
-    // For initial development, we can use fallback values 
-    // until the actual LP contract is available
+    // Try to use real data first, fallback if not available
     if (!lpReserves || !token0 || !token1 || !pageDecimals) {
+      console.log('Ethereum chain: Missing data, using fallback values', {
+        lpReserves: !!lpReserves,
+        token0: !!token0,
+        token1: !!token1,
+        pageDecimals: !!pageDecimals
+      });
+      
       // Use fallback values with slight random variation to simulate real data
       const variation = (Math.random() * 0.01) - 0.005; // -0.5% to +0.5%
       setPagePrice(FALLBACK_VALUES.price * (1 + variation));
@@ -220,9 +217,21 @@ export function useEthereumChainData(): EthereumChainData {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    console.log('Refreshing Ethereum chain data...');
     
     try {
       const ethPrice = await fetchEthUsdPrice();
+      console.log('Ethereum price fetched:', ethPrice);
+      
+      // Debug LP contract
+      console.log('Ethereum LP contract:', {
+        address: LP_CONTRACT_ADDRESS,
+        token0Available: !!token0,
+        token1Available: !!token1,
+        reservesAvailable: !!lpReserves,
+        pageDecimals
+      });
+      
       calculatePriceAndTVL(ethPrice);
       setLastUpdated(new Date());
     } catch (error) {
@@ -231,7 +240,7 @@ export function useEthereumChainData(): EthereumChainData {
     } finally {
       setLoading(false);
     }
-  }, [fetchEthUsdPrice, calculatePriceAndTVL]);
+  }, [fetchEthUsdPrice, calculatePriceAndTVL, token0, token1, lpReserves, pageDecimals]);
 
   // Initial load
   useEffect(() => {

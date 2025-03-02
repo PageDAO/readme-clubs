@@ -17,7 +17,6 @@ const TokenDashboard: React.FC = () => {
     totalBalance,
     totalBalanceValue,
     isLoading,
-    errors,
     lastUpdated,
     refreshAll,
     chains
@@ -95,17 +94,6 @@ const TokenDashboard: React.FC = () => {
               </p>
             </div>
           </div>
-          
-          {errors && errors.length > 0 && (
-            <div className="mt-4 p-2 bg-red-50 text-red-600 rounded">
-              <p className="font-bold">Errors:</p>
-              <ul className="list-disc list-inside">
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
           
           <div className="mt-4 text-sm text-gray-500">
             Last updated: {formatDate(lastUpdated)}
