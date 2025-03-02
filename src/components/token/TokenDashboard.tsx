@@ -1,10 +1,13 @@
 // src/components/token/TokenDashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useMultichainToken, COSMOS_PAGE_TOKEN } from '../../hooks/useMultichainToken';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
 import TokenDetailCard from './TokenDetailCard';
 import TokenDataTable from './TokenDataTable';
 import UniswapModal from '../../features/web3/UniswapModal';
+import TokenSummaryCard from './TokenSummaryCard';
+import ChainSelector from './ChainSelector';
+import RefreshBar from './RefreshBar';
 
 const TokenDashboard: React.FC = () => {
   // Hooks
@@ -32,18 +35,39 @@ const TokenDashboard: React.FC = () => {
   } = useTokenPrices();
   
   const [isUniswapModalOpen, setUniswapModalOpen] = useState(false);
+  const hasInitializedRef = useRef(false);
 
   // Find price for currently selected chain
   const currentPrice = selectedChainId 
     ? prices.find(p => p.chainId === selectedChainId)
     : prices.find(p => p.chainId === COSMOS_PAGE_TOKEN.chainId);
 
-  // Initial data load
+  // Always force data load when component mounts
   useEffect(() => {
-    if (prices.every(p => p.usdPrice === null)) {
-      refreshAllPrices();
+    // Only run once
+    if (!hasInitializedRef.current) {
+      console.log("TokenDashboard mounted - forcing data refresh");
+      hasInitializedRef.current = true;
+      
+      // Add a short delay to ensure everything is ready
+      const timeoutId = setTimeout(() => {
+        refreshAllPrices();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [refreshAllPrices, prices]);
+  }, [refreshAllPrices]);
+
+  // Refresh data when chain selection changes
+  useEffect(() => {
+    if (selectedChainId && chainType === 'evm') {
+      console.log(`Chain selection changed to ${selectedChainId} - refreshing data`);
+      refreshChainPrice(selectedChainId);
+    } else if (chainType === 'cosmos') {
+      console.log('Cosmos chain selected - refreshing Osmosis data');
+      refreshOsmosisData();
+    }
+  }, [selectedChainId, chainType, refreshChainPrice, refreshOsmosisData]);
 
   // Helper to find chain name safely
   const getChainName = (chainId: number | string | undefined): string => {
@@ -64,68 +88,47 @@ const TokenDashboard: React.FC = () => {
     }
   };
 
+  // Manual refresh handler with logging
+  const handleRefreshClick = () => {
+    console.log("Manual refresh triggered");
+    refreshAllPrices();
+  };
+
+  // Loading state
+  if (prices.every(p => p.usdPrice === null) && isRefreshing) {
+    return (
+      <div className="text-center p-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+        <p>Loading token data across chains...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+      {/* Refresh Bar */}
+      <RefreshBar 
+        prices={prices} 
+        isRefreshing={isRefreshing} 
+        onRefresh={handleRefreshClick} 
+        title="$PAGE Token Dashboard"
+      />
+
       {/* Summary section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">$PAGE Token Dashboard</h2>
-          <button
-            onClick={refreshAllPrices}
-            disabled={isRefreshing}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh All Data'}
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-gray-600">Average Price</p>
-            <p className="text-3xl font-bold">
-              ${aggregatePrice !== null ? aggregatePrice.toFixed(6) : 'Loading...'}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Total Value Locked</p>
-            <p className="text-3xl font-bold">
-              ${totalTVL > 0 ? totalTVL.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'Loading...'}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Your Balance</p>
-            <p className="text-3xl font-bold">
-              {balance.toFixed(2)} $PAGE
-            </p>
-          </div>
-        </div>
-      </div>
+      <TokenSummaryCard 
+        aggregatePrice={aggregatePrice} 
+        totalTVL={totalTVL} 
+        balance={balance} 
+      />
 
       {/* Chain Selector */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-bold mb-4">Select Chain</h3>
-        <div className="flex flex-wrap gap-2">
-          {availableChains.map(chain => (
-            <button
-              key={typeof chain.id === 'string' ? chain.id : chain.id.toString()}
-              onClick={() => {
-                if (chain.type === 'evm' && typeof chain.id === 'number') {
-                  selectChain(chain.id);
-                } else {
-                  selectCosmosChain();
-                }
-              }}
-              className={`px-4 py-2 rounded-lg ${
-                (selectedChainId === chain.id && chainType === 'evm') || 
-                (chain.id === 'osmosis-1' && chainType === 'cosmos')
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-            >
-              {chain.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ChainSelector 
+        availableChains={availableChains}
+        selectedChainId={selectedChainId}
+        chainType={chainType}
+        onSelectChain={selectChain}
+        onSelectCosmosChain={selectCosmosChain}
+      />
 
       {/* Current Chain Details */}
       <TokenDetailCard 
