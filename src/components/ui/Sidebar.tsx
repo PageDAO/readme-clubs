@@ -22,6 +22,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       </button>
       <button
         className={`w-full text-left p-2 mb-2 rounded ${
+          location.pathname === '/interchain' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
+        }`}
+        onClick={() => navigate('/interchain')}
+      >
+        InterChain $PAGE
+      </button>
+      <button
+        className={`w-full text-left p-2 mb-2 rounded ${
           location.pathname === '/browse' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'
         }`}
         onClick={() => navigate('/browse')}

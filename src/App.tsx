@@ -8,6 +8,8 @@ import { mainnet } from 'viem/chains'
 import { http } from 'viem'
 
 // Import your components
+import InterChainPage from './pages/InterChainPage';
+
 import HomePage from './pages/HomePage'
 import BrowseBooksPage from './pages/BrowseBooksPage'
 import ProfilePage from './pages/ProfilePage'
@@ -50,6 +52,8 @@ function App() {
                   <Route path="/book/:bookId" element={<DetailPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/page-token" element={<TokenPage />} />
+                  <Route path="/interchain" element={<InterChainPage />} />
+
                 </Routes>
               </Layout>
             </BrowserRouter>
