@@ -2,10 +2,13 @@
 import React from 'react';
 import TokenDashboard from '../components/token/TokenDashboard';
 
+/**
+ * Page component for the InterChain $PAGE data
+ * Displays the multi-chain token dashboard with Base and Ethereum data
+ */
 const InterChainPage: React.FC = () => {
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">InterChain $PAGE Dashboard</h1>
+    <div className="max-w-6xl mx-auto">
       <TokenDashboard />
     </div>
   );

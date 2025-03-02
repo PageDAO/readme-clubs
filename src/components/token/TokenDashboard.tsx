@@ -1,161 +1,156 @@
 // src/components/token/TokenDashboard.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import { useMultichainToken, COSMOS_PAGE_TOKEN } from '../../hooks/useMultichainToken';
-import { useTokenPrices } from '../../hooks/useTokenPrices';
-import TokenDetailCard from './TokenDetailCard';
-import TokenDataTable from './TokenDataTable';
-import UniswapModal from '../../features/web3/UniswapModal';
-import TokenSummaryCard from './TokenSummaryCard';
-import ChainSelector from './ChainSelector';
-import RefreshBar from './RefreshBar';
+import React, { useState, useCallback } from 'react';
+import BaseChainCard from './chains/BaseChainCard';
+import EthereumChainCard from './chains/EthereumChainCard';
+import { useAggregatedTokenData } from '../../hooks/useAggregatedTokenData';
 
+/**
+ * Enhanced token dashboard that includes aggregated data
+ * from Base and Ethereum blockchains. This will be expanded further
+ * to include additional chains as they are implemented.
+ */
 const TokenDashboard: React.FC = () => {
-  // Hooks
-  const { 
-    currentToken, 
-    chainType,
-    balance, 
-    availableChains, 
-    selectedChainId, 
-    selectChain,
-    selectCosmosChain,
-    osmosisTokenData,
-    refreshOsmosisData,
-    isLoadingOsmosisData,
-    lastUpdated
-  } = useMultichainToken();
+  // Use the aggregated data hook
+  const {
+    tvl,
+    averagePrice,
+    totalBalance,
+    totalBalanceValue,
+    isLoading,
+    errors,
+    lastUpdated,
+    refreshAll,
+    chains
+  } = useAggregatedTokenData();
   
-  const { 
-    prices, 
-    aggregatePrice, 
-    totalTVL,
-    refreshChainPrice,
-    refreshAllPrices,
-    isRefreshing
-  } = useTokenPrices();
+  // State to track which chains are visible
+  const [visibleChains, setVisibleChains] = useState(chains.map(c => c.id));
   
-  const [isUniswapModalOpen, setUniswapModalOpen] = useState(false);
-  const hasInitializedRef = useRef(false);
-
-  // Find price for currently selected chain
-  const currentPrice = selectedChainId 
-    ? prices.find(p => p.chainId === selectedChainId)
-    : prices.find(p => p.chainId === COSMOS_PAGE_TOKEN.chainId);
-
-  // Always force data load when component mounts
-  useEffect(() => {
-    // Only run once
-    if (!hasInitializedRef.current) {
-      console.log("TokenDashboard mounted - forcing data refresh");
-      hasInitializedRef.current = true;
-      
-      // Add a short delay to ensure everything is ready
-      const timeoutId = setTimeout(() => {
-        refreshAllPrices();
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [refreshAllPrices]);
-
-  // Refresh data when chain selection changes
-  useEffect(() => {
-    if (selectedChainId && chainType === 'evm') {
-      console.log(`Chain selection changed to ${selectedChainId} - refreshing data`);
-      refreshChainPrice(selectedChainId);
-    } else if (chainType === 'cosmos') {
-      console.log('Cosmos chain selected - refreshing Osmosis data');
-      refreshOsmosisData();
-    }
-  }, [selectedChainId, chainType, refreshChainPrice, refreshOsmosisData]);
-
-  // Helper to find chain name safely
-  const getChainName = (chainId: number | string | undefined): string => {
-    if (chainId === undefined || chainId === null) return 'Unknown';
-    
-    if (chainId === 'osmosis-1') return 'Osmosis';
-    
-    const chain = availableChains.find(c => c.id === chainId);
-    return chain ? chain.name : 'Unknown';
+  // Toggle chain visibility
+  const toggleChain = useCallback((chainId: string) => {
+    setVisibleChains(prev => {
+      if (prev.includes(chainId)) {
+        return prev.filter(id => id !== chainId);
+      } else {
+        return [...prev, chainId];
+      }
+    });
+  }, []);
+  
+  // Format the last updated timestamp
+  const formatDate = (date: Date | null) => {
+    return date ? date.toLocaleString() : 'Never';
   };
-
-  // Refresh handlers
-  const handleRefreshCurrentChain = () => {
-    if (chainType === 'cosmos') {
-      refreshOsmosisData();
-    } else if (selectedChainId !== null && typeof selectedChainId === 'number') {
-      refreshChainPrice(selectedChainId);
-    }
-  };
-
-  // Manual refresh handler with logging
-  const handleRefreshClick = () => {
-    console.log("Manual refresh triggered");
-    refreshAllPrices();
-  };
-
-  // Loading state
-  if (prices.every(p => p.usdPrice === null) && isRefreshing) {
-    return (
-      <div className="text-center p-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-        <p>Loading token data across chains...</p>
-      </div>
-    );
-  }
-
+  
   return (
     <div className="space-y-8">
-      {/* Refresh Bar */}
-      <RefreshBar 
-        prices={prices} 
-        isRefreshing={isRefreshing} 
-        onRefresh={handleRefreshClick} 
-        title="$PAGE Token Dashboard"
-      />
-
-      {/* Summary section */}
-      <TokenSummaryCard 
-        aggregatePrice={aggregatePrice} 
-        totalTVL={totalTVL} 
-        balance={balance} 
-      />
-
-      {/* Chain Selector */}
-      <ChainSelector 
-        availableChains={availableChains}
-        selectedChainId={selectedChainId}
-        chainType={chainType}
-        onSelectChain={selectChain}
-        onSelectCosmosChain={selectCosmosChain}
-      />
-
-      {/* Current Chain Details */}
-      <TokenDetailCard 
-        chainType={chainType}
-        chainName={getChainName(chainType === 'cosmos' ? 'osmosis-1' : selectedChainId || undefined)}
-        currentPrice={currentPrice}
-        osmosisTokenData={osmosisTokenData}
-        isLoadingOsmosisData={isLoadingOsmosisData}
-        lastUpdated={lastUpdated}
-        onRefresh={handleRefreshCurrentChain}
-        onTrade={() => setUniswapModalOpen(true)}
-        currentToken={currentToken}
-      />
-
-      {/* All Chains Overview */}
-      <TokenDataTable 
-        prices={prices}
-        selectedChainId={selectedChainId}
-        chainType={chainType}
-        onRefreshChain={refreshChainPrice}
-      />
-
-      {/* Uniswap Modal - Reuse the existing component from the project */}
-      <UniswapModal
-        isOpen={isUniswapModalOpen}
-        onClose={() => setUniswapModalOpen(false)}
-      />
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-6">$PAGE Token Dashboard</h1>
+        <p className="mb-6 text-gray-600">
+          View $PAGE token data across different blockchains.
+        </p>
+        
+        {/* Aggregate Data Summary */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Aggregated $PAGE Data</h3>
+            <button
+              onClick={refreshAll}
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            >
+              {isLoading ? 'Refreshing...' : 'Refresh All'}
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <p className="text-gray-600">Average Price</p>
+              <p className="text-2xl font-bold">
+                ${averagePrice ? averagePrice.toFixed(6) : 'Loading...'}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600">Total Value Locked</p>
+              <p className="text-2xl font-bold">
+                ${tvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600">Your Total Balance</p>
+              <p className="text-2xl font-bold">
+                {totalBalance.toFixed(2)} $PAGE
+              </p>
+              <p className="text-sm text-gray-500">
+                ${totalBalanceValue.toFixed(2)} USD
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600">Tracked Chains</p>
+              <p className="text-2xl font-bold">
+                {visibleChains.length} of {chains.length}
+              </p>
+            </div>
+          </div>
+          
+          {errors && errors.length > 0 && (
+            <div className="mt-4 p-2 bg-red-50 text-red-600 rounded">
+              <p className="font-bold">Errors:</p>
+              <ul className="list-disc list-inside">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          <div className="mt-4 text-sm text-gray-500">
+            Last updated: {formatDate(lastUpdated)}
+          </div>
+        </div>
+        
+        {/* Chain Filter */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <h3 className="text-lg font-medium mb-3">Filter Chains</h3>
+          <div className="flex flex-wrap gap-2">
+            {chains.map(chain => (
+              <button
+                key={chain.id}
+                onClick={() => toggleChain(chain.id)}
+                className={`px-4 py-2 rounded-lg ${
+                  visibleChains.includes(chain.id)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                {chain.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Chain Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {visibleChains.includes('base') && (
+            <BaseChainCard />
+          )}
+          
+          {visibleChains.includes('ethereum') && (
+            <EthereumChainCard />
+          )}
+          
+          {/* Future chains would go here */}
+        </div>
+        
+        {/* Future Enhancement Note */}
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg text-blue-700">
+          <h3 className="font-bold mb-2">Coming Soon</h3>
+          <p>Support for Optimism, Polygon, and Cosmos chains will be added in future updates!</p>
+        </div>
+      </div>
     </div>
   );
 };
