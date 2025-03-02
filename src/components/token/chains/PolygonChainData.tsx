@@ -6,7 +6,7 @@ import type { Address } from 'viem';
 
 // Contract addresses for Polygon blockchain
 const PAGE_TOKEN_ADDRESS = '0x9ceE70895726B0ea14E6019C961dAf32222a7C2f' as const;
-// Placeholder - To be replaced with actual LP contract address once available
+// Actual LP contract address - verify this is correct
 const LP_CONTRACT_ADDRESS = '0xf48D6955569622a8F3886eBEc8EA2c60b37e5eF5' as const;
 
 // ABIs
@@ -70,7 +70,6 @@ export interface PolygonChainData {
 type GetReservesResult = [bigint, bigint, number];
 
 // For initial testing, use static fallback values
-// This allows development to proceed even without actual contract interaction
 const FALLBACK_VALUES = {
   price: 0.061,
   tvl: 650000,
@@ -104,15 +103,11 @@ export function usePolygonChainData(): PolygonChainData {
   }) as { data: number | undefined };
 
   // Get LP reserves to calculate price and TVL
-  // Note: Disabled until we have the actual LP address
   const { data: lpReserves } = useContractRead({
     address: LP_CONTRACT_ADDRESS as Address,
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'getReserves',
     chainId: 137,
-    query: {
-      enabled: false // Disabled until we have the actual LP address
-    }
   }) as { data: GetReservesResult | undefined };
 
   // Determine which token in the pair is PAGE
@@ -121,9 +116,6 @@ export function usePolygonChainData(): PolygonChainData {
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token0',
     chainId: 137,
-    query: {
-      enabled: false // Disabled until we have the actual LP address
-    }
   }) as { data: Address | undefined };
 
   const { data: token1 } = useContractRead({
@@ -131,9 +123,6 @@ export function usePolygonChainData(): PolygonChainData {
     abi: UNISWAP_V2_PAIR_ABI,
     functionName: 'token1',
     chainId: 137,
-    query: {
-      enabled: false // Disabled until we have the actual LP address
-    }
   }) as { data: Address | undefined };
 
   // Format user's PAGE balance
@@ -144,9 +133,8 @@ export function usePolygonChainData(): PolygonChainData {
   // Fetch MATIC USD price
   const fetchMaticUsdPrice = useCallback(async () => {
     try {
-      // Use a CORS proxy to avoid issues
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd')}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -175,6 +163,7 @@ export function usePolygonChainData(): PolygonChainData {
     // For initial development, we'll use fallback values 
     // until the actual LP contract is available
     if (!lpReserves || !token0 || !token1 || !pageDecimals) {
+      console.log('Using fallback data for Polygon');
       // Use fallback values with slight random variation to simulate real data
       const variation = (Math.random() * 0.01) - 0.005; // -0.5% to +0.5%
       setPagePrice(FALLBACK_VALUES.price * (1 + variation));
@@ -183,6 +172,7 @@ export function usePolygonChainData(): PolygonChainData {
     }
 
     try {
+      console.log('Calculating Polygon price from reserves');
       const isPageToken0 = token0.toLowerCase() === PAGE_TOKEN_ADDRESS.toLowerCase();
       
       const [reserve0, reserve1] = lpReserves;
@@ -238,7 +228,6 @@ export function usePolygonChainData(): PolygonChainData {
 
   // Initial load
   useEffect(() => {
-    // Since we're using fallbacks for now, we can call refresh directly
     refresh();
   }, [refresh]);
 

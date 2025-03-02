@@ -146,7 +146,7 @@ export function useOptimismChainData(): OptimismChainData {
     try {
       // Use a CORS proxy to avoid issues
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd')}`,
         {
           headers: {
             'Accept': 'application/json',

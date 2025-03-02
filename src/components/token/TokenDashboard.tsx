@@ -2,12 +2,15 @@
 import React, { useState, useCallback } from 'react';
 import BaseChainCard from './chains/BaseChainCard';
 import EthereumChainCard from './chains/EthereumChainCard';
+import OptimismChainCard from './chains/OptimismChainCard';
+import PolygonChainCard from './chains/PolygonChainCard';
 import { useAggregatedTokenData } from '../../hooks/useAggregatedTokenData';
 
 /**
  * Enhanced token dashboard that includes aggregated data
- * from Base and Ethereum blockchains. This will be expanded further
- * to include additional chains as they are implemented.
+ * from Base, Ethereum, Optimism, and Polygon blockchains.
+ * This will be expanded further to include Cosmos chains
+ * as they are implemented.
  */
 const TokenDashboard: React.FC = () => {
   // Use the aggregated data hook
@@ -130,13 +133,19 @@ const TokenDashboard: React.FC = () => {
             <EthereumChainCard />
           )}
           
-          {/* Future chains would go here */}
+          {visibleChains.includes('optimism') && (
+            <OptimismChainCard />
+          )}
+          
+          {visibleChains.includes('polygon') && (
+            <PolygonChainCard />
+          )}
         </div>
         
         {/* Future Enhancement Note */}
         <div className="mt-8 p-4 bg-blue-50 rounded-lg text-blue-700">
           <h3 className="font-bold mb-2">Coming Soon</h3>
-          <p>Support for Optimism, Polygon, and Cosmos chains will be added in future updates!</p>
+          <p>Support for Cosmos chains will be added in future updates!</p>
         </div>
       </div>
     </div>
