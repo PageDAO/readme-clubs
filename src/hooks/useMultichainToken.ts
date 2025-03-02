@@ -2,7 +2,7 @@
 import { useAccount, useChainId, useSwitchChain, useContractRead } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // TOKEN CONFIGURATION
 // Define token addresses for each chain
@@ -113,27 +113,10 @@ export const COSMOS_PAGE_TOKEN: CosmosTokenConfig = {
 // Combined array of all chains (for UI purposes)
 export const ALL_CHAIN_CONFIGS = [...PAGE_TOKENS, COSMOS_PAGE_TOKEN]
 
-// Function to fetch Osmosis token data from DAODAO API
-const fetchOsmosisTokenData = async (denom: string): Promise<{ price: number, tvl?: number } | null> => {
-  try {
-    const response = await fetch(COSMOS_PAGE_TOKEN.daodaoEndpoint || '');
-    const data = await response.json();
-    
-    // Find the token in the response
-    const tokenData = data.tokens?.find((token: any) => token.denom === denom);
-    
-    if (tokenData) {
-      return {
-        price: tokenData.price || 0,
-        tvl: tokenData.liquidity || undefined
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error fetching Osmosis token data:', error);
-    return null;
-  }
+// Fallback Osmosis data to use instead of API calls
+const OSMOSIS_FALLBACK = {
+  price: 0.060,
+  tvl: 450000
 };
 
 // HOOK IMPLEMENTATION
@@ -143,9 +126,12 @@ export function useMultichainToken() {
   const { switchChain } = useSwitchChain()
   const [selectedChainId, setSelectedChainId] = useState<number | null>(chainId || 8453) // Default to Base if not connected
   const [selectedChainType, setSelectedChainType] = useState<'evm' | 'cosmos'>('evm')
-  const [osmosisTokenData, setOsmosisTokenData] = useState<{ price: number, tvl?: number } | null>(null)
+  const [osmosisTokenData, setOsmosisTokenData] = useState<{ price: number, tvl?: number }>(OSMOSIS_FALLBACK)
   const [isLoadingOsmosisData, setIsLoadingOsmosisData] = useState<boolean>(false)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
+  
+  // Use a ref to track initialization and prevent multiple API calls
+  const osmosisDataFetchedRef = useRef(false)
   
   // Get token config for current chain
   const currentToken = PAGE_TOKENS.find(token => token.chainId === selectedChainId) || PAGE_TOKENS[3] // Default to Base
@@ -167,32 +153,73 @@ export function useMultichainToken() {
     ? Number(formatUnits(pageBalanceData, currentToken.decimals))
     : 0
 
-  // Function to manually refresh Osmosis token data
-  const refreshOsmosisData = useCallback(async () => {
-    setIsLoadingOsmosisData(true);
+  // Function to fetch Osmosis token data (using fallback for now)
+  const fetchOsmosisTokenData = useCallback(async (): Promise<{ price: number, tvl?: number }> => {
+    console.log("Using fallback Osmosis data instead of making API call");
+    return OSMOSIS_FALLBACK;
+    
+    /* Commented out to prevent excessive API calls with DNS errors
     try {
-      const data = await fetchOsmosisTokenData(OSMOSIS_PAGE_DENOM);
+      const response = await fetch(COSMOS_PAGE_TOKEN.daodaoEndpoint || '');
+      const data = await response.json();
+      
+      // Find the token in the response
+      const tokenData = data.tokens?.find((token: any) => token.denom === OSMOSIS_PAGE_DENOM);
+      
+      if (tokenData) {
+        return {
+          price: tokenData.price || 0,
+          tvl: tokenData.liquidity || undefined
+        };
+      }
+      
+      return OSMOSIS_FALLBACK;
+    } catch (error) {
+      console.error('Error fetching Osmosis token data:', error);
+      return OSMOSIS_FALLBACK;
+    }
+    */
+  }, []);
+
+  // Function to refresh Osmosis token data
+  const refreshOsmosisData = useCallback(async () => {
+    // Skip if already loading to prevent duplicate requests
+    if (isLoadingOsmosisData) {
+      console.log("Already loading Osmosis data, skipping refresh");
+      return;
+    }
+    
+    console.log("Refreshing Osmosis data");
+    setIsLoadingOsmosisData(true);
+    
+    try {
+      const data = await fetchOsmosisTokenData();
       setOsmosisTokenData(data);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error refreshing Osmosis data:', error);
+      // Use fallback data on error
+      setOsmosisTokenData(OSMOSIS_FALLBACK);
     } finally {
       setIsLoadingOsmosisData(false);
+      osmosisDataFetchedRef.current = true;
     }
-  }, []);
+  }, [fetchOsmosisTokenData, isLoadingOsmosisData]);
 
-  // Fetch Osmosis token data initially
+  // Fetch Osmosis token data only once on initial load
   useEffect(() => {
-    // Only fetch if we don't have data yet
-    if (!osmosisTokenData && !isLoadingOsmosisData) {
+    // Only fetch if we haven't already fetched and we're not currently loading
+    if (!osmosisDataFetchedRef.current && !isLoadingOsmosisData) {
+      console.log("Initial Osmosis data fetch");
       refreshOsmosisData();
     }
-  }, [osmosisTokenData, isLoadingOsmosisData, refreshOsmosisData]);
+  }, [refreshOsmosisData, isLoadingOsmosisData]);
 
   // Switch to a different EVM chain
   const selectChain = (chainId: number) => {
     if (chainId === selectedChainId && selectedChainType === 'evm') return
     
+    console.log(`Switching to chain ${chainId}`);
     if (switchChain) {
       switchChain({ chainId })
       setSelectedChainId(chainId)
@@ -202,11 +229,15 @@ export function useMultichainToken() {
 
   // Switch to Cosmos/Osmosis
   const selectCosmosChain = () => {
+    console.log("Switching to Cosmos/Osmosis chain");
     setSelectedChainType('cosmos')
     setSelectedChainId(null)
     
-    // Refresh Osmosis data when switching to it
-    refreshOsmosisData();
+    // Don't automatically refresh data on chain switch to avoid excessive calls
+    // Only refresh if it hasn't been fetched yet
+    if (!osmosisDataFetchedRef.current) {
+      refreshOsmosisData();
+    }
   }
 
   // Define available chains for the UI
