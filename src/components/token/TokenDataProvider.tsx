@@ -1,3 +1,5 @@
+// src/components/token/TokenDataProvider.tsx - Revised version
+
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { useAccount, useContractRead } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -39,6 +41,7 @@ type TokenDataAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_LAST_UPDATED'; payload: Date };
+
 
 // ------------------- CONTRACT ABIS -------------------
 
@@ -143,27 +146,6 @@ export function TokenDataProvider({ children }: { children: React.ReactNode }) {
   const ethereumConfig = PAGE_TOKENS.find(token => token.chainId === 1);
   const optimismConfig = PAGE_TOKENS.find(token => token.chainId === 10);
 
-  // Log chain configurations for debugging
-  useEffect(() => {
-    console.log('Chain configurations:', {
-      base: baseConfig ? { 
-        address: baseConfig.address, 
-        lpAddress: baseConfig.lpAddress,
-        decimals: baseConfig.decimals
-      } : 'Not found',
-      ethereum: ethereumConfig ? { 
-        address: ethereumConfig.address, 
-        lpAddress: ethereumConfig.lpAddress,
-        decimals: ethereumConfig.decimals
-      } : 'Not found',
-      optimism: optimismConfig ? { 
-        address: optimismConfig.address, 
-        lpAddress: optimismConfig.lpAddress,
-        decimals: optimismConfig.decimals
-      } : 'Not found',
-    });
-  }, [baseConfig, ethereumConfig, optimismConfig]);
-
   // ----- ETH PRICE FETCHING -----
   const fetchEthPrice = useCallback(async () => {
     dispatch({ type: 'SET_ETH_PRICE_LOADING', payload: true });
@@ -198,372 +180,258 @@ export function TokenDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // ----- CHAIN-SPECIFIC DATA FETCHING -----
+  // Use contract reads for each chain's token data
+  const { data: baseTokenBalance } = useContractRead({
+    address: baseConfig?.address as Address,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    chainId: 8453,
+  });
+
+  const { data: ethTokenBalance } = useContractRead({
+    address: ethereumConfig?.address as Address,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    chainId: 1,
+  });
+
+  const { data: optimismTokenBalance } = useContractRead({
+    address: optimismConfig?.address as Address,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    chainId: 10,
+  });
+
+  // Use contract reads for LP data to calculate prices
+  const { data: baseReserves } = useContractRead({
+    address: baseConfig?.lpAddress as Address,
+    abi: UNISWAP_V2_PAIR_ABI, // Defined elsewhere in the file
+    functionName: 'getReserves',
+    chainId: 8453,
+  });
+
+  const { data: ethReserves } = useContractRead({
+    address: ethereumConfig?.lpAddress as Address,
+    abi: UNISWAP_V2_PAIR_ABI,
+    functionName: 'getReserves',
+    chainId: 1,
+  });
+
+  const { data: optimismReserves } = useContractRead({
+    address: optimismConfig?.lpAddress as Address,
+    abi: UNISWAP_V2_PAIR_ABI,
+    functionName: 'getReserves',
+    chainId: 10,
+  });
+
+  // Update token balances when data becomes available
+  useEffect(() => {
+    if (baseTokenBalance && baseConfig) {
+      const balance = Number(formatUnits(baseTokenBalance as bigint, baseConfig.decimals));
+      dispatch({
+        type: 'UPDATE_CHAIN_DATA',
+        chain: 'base',
+        payload: { balance, lastUpdated: new Date() }
+      });
+    }
+  }, [baseTokenBalance, baseConfig]);
+
+  useEffect(() => {
+    if (ethTokenBalance && ethereumConfig) {
+      const balance = Number(formatUnits(ethTokenBalance as bigint, ethereumConfig.decimals));
+      dispatch({
+        type: 'UPDATE_CHAIN_DATA',
+        chain: 'ethereum',
+        payload: { balance, lastUpdated: new Date() }
+      });
+    }
+  }, [ethTokenBalance, ethereumConfig]);
+
+  useEffect(() => {
+    if (optimismTokenBalance && optimismConfig) {
+      const balance = Number(formatUnits(optimismTokenBalance as bigint, optimismConfig.decimals));
+      dispatch({
+        type: 'UPDATE_CHAIN_DATA',
+        chain: 'optimism',
+        payload: { balance, lastUpdated: new Date() }
+      });
+    }
+  }, [optimismTokenBalance, optimismConfig]);
+
+  useEffect(() => {
+    if (baseReserves && state.ethPrice && baseConfig) {
+      try {
+        // Log detailed calculation steps for Base
+        console.log("Calculating Base price with:", {
+          baseReserves,
+          ethPrice: state.ethPrice,
+          pageDecimals: baseConfig.decimals
+        });
+        
+        const [reserve0, reserve1] = baseReserves as [bigint, bigint, number];
+        const ethReserve = Number(formatUnits(reserve0, 18)); // ETH is token0 on Base
+        const pageReserve = Number(formatUnits(reserve1, baseConfig.decimals)); // PAGE is token1
+        
+        console.log("Base calculation values:", {
+          ethReserve,
+          pageReserve,
+          reserve0: reserve0.toString(),
+          reserve1: reserve1.toString()
+        });
+        
+        const pagePriceInUsd = (state.ethPrice * ethReserve) / pageReserve;
+        const tvl = (ethReserve * state.ethPrice) * 2; // Simplified TVL calculation
+        
+        console.log("Base calculation results:", {
+          pagePriceInUsd,
+          tvl
+        });
+        
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'base',
+          payload: { price: pagePriceInUsd, tvl, loading: false, error: null }
+        });
+      } catch (error) {
+        console.error('Error calculating Base price:', error);
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'base',
+          payload: { error: 'Failed to calculate price', loading: false }
+        });
+      }
+    }
+  }, [baseReserves, state.ethPrice, baseConfig]);
+
+  useEffect(() => {
+    console.log("Base token balance:", baseTokenBalance);
+    console.log("Base reserves:", baseReserves);
+    console.log("Base config:", baseConfig);
+  }, [baseTokenBalance, baseReserves, baseConfig]);
+
+// Calculate prices and TVL for Ethereum
+useEffect(() => {
+    if (ethReserves && state.ethPrice && ethereumConfig) {
+      try {
+        // Type check the reserves data
+        const reserves = ethReserves as [bigint, bigint, number];
+        if (!reserves) {
+          console.log("No Ethereum reserve data available");
+          return;
+        }
+        
+        const [reserve0, reserve1] = reserves;
+        const ethReserve = Number(formatUnits(reserve1, 18));
+        const pageReserve = Number(formatUnits(reserve0, ethereumConfig.decimals));
+        const pagePriceInUsd = (state.ethPrice * ethReserve) / pageReserve;
+        const tvl = (ethReserve * state.ethPrice) * 2; // Simplified calculation
+        
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'ethereum',
+          payload: { price: pagePriceInUsd, tvl, loading: false, error: null }
+        });
+      } catch (error) {
+        console.error('Error calculating Ethereum price:', error);
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'ethereum',
+          payload: { error: 'Failed to calculate price', loading: false }
+        });
+      }
+    }
+  }, [ethReserves, state.ethPrice, ethereumConfig]);
+
+  useEffect(() => {
+    console.log("Ethereum token balance:", ethTokenBalance);
+    console.log("Ethereum reserves:", ethReserves);
+    console.log("Ethereum config:", ethereumConfig);
+  }, [ethTokenBalance, ethReserves, ethereumConfig]);
   
-  // Base Chain Data Fetching
-  const fetchBaseChainData = useCallback(async () => {
-    console.log('Fetching Base chain data...');
-
-    // Check if we have required configuration
-    console.log('Base chain fetch prerequisites:', { 
-      baseConfig: !!baseConfig,
-      tokenAddress: baseConfig?.address,
-      lpAddress: baseConfig?.lpAddress,
-      decimals: baseConfig?.decimals,
-      ethPrice: state.ethPrice,
-      walletAddress: address
-    });
-
-    if (!baseConfig || !state.ethPrice) {
-      console.warn('Skipping Base chain fetch: Missing config or ETH price');
-      return;
-    }
-    
-    dispatch({ 
-      type: 'UPDATE_CHAIN_DATA', 
-      chain: 'base', 
-      payload: { loading: true, error: null } 
-    });
-    
-    try {
-      // Get user balance
-      console.log('Fetching Base PAGE balance for address:', address);
-      const pageBalance = address ? await fetchTokenBalance(
-        baseConfig.address,
-        address as Address,
-        baseConfig.decimals,
-        8453
-      ) : 0;
-      console.log('Base PAGE balance result:', pageBalance);
-      
-      // Get price and TVL
-      console.log('Calculating Base price and TVL with ETH price:', state.ethPrice);
-      if (!baseConfig.lpAddress) {
-        console.warn('Base chain missing LP address, cannot calculate price/TVL accurately');
-      }
-      
-      const { price, tvl } = await calculatePriceAndTVL(
-        baseConfig.address,
-        baseConfig.lpAddress as `0x${string}`,
-        baseConfig.decimals,
-        state.ethPrice,
-        8453
-      );
-      console.log('Base price and TVL calculation result:', { price, tvl });
-      
-      // Update state with fresh data
-      console.log('Updating Base chain data in state');
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'base',
-        payload: {
-          price,
-          tvl,
-          balance: pageBalance,
-          loading: false,
-          error: null,
-          lastUpdated: new Date()
+  // Calculate prices and TVL for Optimism
+  useEffect(() => {
+    if (optimismReserves && state.ethPrice && optimismConfig) {
+      try {
+        // Log detailed calculation steps
+        console.log("Calculating Optimism price with:", {
+          optimismReserves,
+          ethPrice: state.ethPrice,
+          pageDecimals: optimismConfig.decimals
+        });
+        
+        const reserves = optimismReserves as [bigint, bigint, number];
+        if (!reserves) {
+          console.log("No Optimism reserve data available");
+          return;
         }
-      });
-      console.log('Base chain data update complete');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching Base data';
-      console.error('Error fetching Base chain data:', error);
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'base',
-        payload: { error: errorMessage, loading: false }
-      });
+        
+        const [reserve0, reserve1] = reserves;
+        
+        // Assuming same order as Ethereum (PAGE is token0, ETH is token1)
+        const ethReserve = Number(formatUnits(reserve1, 18));
+        const pageReserve = Number(formatUnits(reserve0, optimismConfig.decimals));
+        
+        console.log("Optimism calculation values:", {
+          ethReserve,
+          pageReserve,
+          reserve0: reserve0.toString(),
+          reserve1: reserve1.toString()
+        });
+        
+        const pagePriceInUsd = (state.ethPrice * ethReserve) / pageReserve;
+        const tvl = (ethReserve * state.ethPrice) * 2; // Simplified calculation
+        
+        console.log("Optimism calculation results:", {
+          pagePriceInUsd,
+          tvl
+        });
+        
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'optimism',
+          payload: { price: pagePriceInUsd, tvl, loading: false, error: null }
+        });
+      } catch (error) {
+        console.error('Error calculating Optimism price:', error);
+        dispatch({
+          type: 'UPDATE_CHAIN_DATA',
+          chain: 'optimism',
+          payload: { error: 'Failed to calculate price', loading: false }
+        });
+      }
     }
-  }, [baseConfig, state.ethPrice, address]);
+  }, [optimismReserves, state.ethPrice, optimismConfig]);
 
-  // Ethereum Chain Data Fetching
-  const fetchEthereumChainData = useCallback(async () => {
-    console.log('Fetching Ethereum chain data...');
-
-    // Check if we have required configuration
-    console.log('Ethereum chain fetch prerequisites:', { 
-      ethereumConfig: !!ethereumConfig,
-      tokenAddress: ethereumConfig?.address,
-      lpAddress: ethereumConfig?.lpAddress,
-      decimals: ethereumConfig?.decimals,
-      ethPrice: state.ethPrice,
-      walletAddress: address
-    });
-
-    if (!ethereumConfig || !state.ethPrice) {
-      console.warn('Skipping Ethereum chain fetch: Missing config or ETH price');
-      return;
-    }
+  // Add this to check if Optimism config is correct
+useEffect(() => {
+    console.log("Optimism LP address:", optimismConfig?.lpAddress);
     
-    dispatch({ 
-      type: 'UPDATE_CHAIN_DATA', 
-      chain: 'ethereum', 
-      payload: { loading: true, error: null } 
-    });
-    
+    // Also verify the RPC is working by checking chain ID
     try {
-      // Get user balance
-      console.log('Fetching Ethereum PAGE balance for address:', address);
-      const pageBalance = address ? await fetchTokenBalance(
-        ethereumConfig.address,
-        address as Address,
-        ethereumConfig.decimals,
-        1
-      ) : 0;
-      console.log('Ethereum PAGE balance result:', pageBalance);
-      
-      // Get price and TVL
-      console.log('Calculating Ethereum price and TVL with ETH price:', state.ethPrice);
-      if (!ethereumConfig.lpAddress) {
-        console.warn('Ethereum chain missing LP address, cannot calculate price/TVL accurately');
-      }
-      
-      const { price, tvl } = await calculatePriceAndTVL(
-        ethereumConfig.address,
-        ethereumConfig.lpAddress as `0x${string}`,
-        ethereumConfig.decimals,
-        state.ethPrice,
-        1
-      );
-      console.log('Ethereum price and TVL calculation result:', { price, tvl });
-      
-      // Update state with fresh data
-      console.log('Updating Ethereum chain data in state');
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'ethereum',
-        payload: {
-          price,
-          tvl,
-          balance: pageBalance,
-          loading: false,
-          error: null,
-          lastUpdated: new Date()
-        }
-      });
-      console.log('Ethereum chain data update complete');
+      console.log("Checking Optimism RPC connection...");
+      // If using wagmi, there might be chain status info you can log
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching Ethereum data';
-      console.error('Error fetching Ethereum chain data:', error);
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'ethereum',
-        payload: { error: errorMessage, loading: false }
-      });
+      console.error("Error checking Optimism connection:", error);
     }
-  }, [ethereumConfig, state.ethPrice, address]);
+  }, [optimismConfig]);
 
-  // Optimism Chain Data Fetching
-  const fetchOptimismChainData = useCallback(async () => {
-    console.log('Fetching Optimism chain data...');
-
-    // Check if we have required configuration
-    console.log('Optimism chain fetch prerequisites:', { 
-      optimismConfig: !!optimismConfig,
-      tokenAddress: optimismConfig?.address,
-      lpAddress: optimismConfig?.lpAddress,
-      decimals: optimismConfig?.decimals,
-      ethPrice: state.ethPrice,
-      walletAddress: address
-    });
-
-    if (!optimismConfig || !state.ethPrice) {
-      console.warn('Skipping Optimism chain fetch: Missing config or ETH price');
-      return;
-    }
-    
-    dispatch({ 
-      type: 'UPDATE_CHAIN_DATA', 
-      chain: 'optimism', 
-      payload: { loading: true, error: null } 
-    });
-    
-    try {
-      // Get user balance
-      console.log('Fetching Optimism PAGE balance for address:', address);
-      const pageBalance = address ? await fetchTokenBalance(
-        optimismConfig.address,
-        address as Address,
-        optimismConfig.decimals,
-        10
-      ) : 0;
-      console.log('Optimism PAGE balance result:', pageBalance);
-      
-      // Get price and TVL
-      console.log('Calculating Optimism price and TVL with ETH price:', state.ethPrice);
-      if (!optimismConfig.lpAddress) {
-        console.warn('Optimism chain missing LP address, cannot calculate price/TVL accurately');
-      }
-      
-      const { price, tvl } = await calculatePriceAndTVL(
-        optimismConfig.address,
-        optimismConfig.lpAddress as `0x${string}`,
-        optimismConfig.decimals,
-        state.ethPrice,
-        10
-      );
-      console.log('Optimism price and TVL calculation result:', { price, tvl });
-      
-      // Update state with fresh data
-      console.log('Updating Optimism chain data in state');
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'optimism',
-        payload: {
-          price,
-          tvl,
-          balance: pageBalance,
-          loading: false,
-          error: null,
-          lastUpdated: new Date()
-        }
-      });
-      console.log('Optimism chain data update complete');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching Optimism data';
-      console.error('Error fetching Optimism chain data:', error);
-      dispatch({
-        type: 'UPDATE_CHAIN_DATA',
-        chain: 'optimism',
-        payload: { error: errorMessage, loading: false }
-      });
-    }
-  }, [optimismConfig, state.ethPrice, address]);
-
-  // ------------------- UTILITY FUNCTIONS -------------------
-
-  // Helper for fetching token balances
-  async function fetchTokenBalance(
-    tokenAddress: `0x${string}`, 
-    walletAddress: Address, 
-    decimals: number,
-    chainId: number
-  ): Promise<number> {
-    try {
-      console.log(`Fetching token balance for ${walletAddress} on chain ${chainId}`);
-      
-      // Use wagmi hooks for contract reads
-      const { data: balanceData } = await useContractRead({
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [walletAddress],
-        chainId,
-      }) as { data: bigint | undefined };
-      
-      if (!balanceData) {
-        console.warn(`No balance data returned for ${walletAddress} on chain ${chainId}`);
-        return 0;
-      }
-      
-      const formattedBalance = Number(formatUnits(balanceData, decimals));
-      console.log(`Token balance for ${walletAddress} on chain ${chainId}:`, formattedBalance);
-      return formattedBalance;
-    } catch (error) {
-      console.error(`Error fetching token balance on chain ${chainId}:`, error);
-      return 0;
-    }
-  }
-
-  // Helper for calculating price and TVL from LP reserves
-  async function calculatePriceAndTVL(
-    tokenAddress: `0x${string}`,
-    lpAddress: `0x${string}`,
-    tokenDecimals: number,
-    ethPriceUsd: number,
-    chainId: number
-  ): Promise<{ price: number | null; tvl: number | null }> {
-    try {
-      console.log(`Calculating price and TVL for token ${tokenAddress} on chain ${chainId}`);
-      
-      if (!lpAddress) {
-        console.warn(`Missing LP address for chain ${chainId}`);
-        return { price: null, tvl: null };
-      }
-      
-      // Get LP reserves
-      console.log(`Fetching LP reserves from ${lpAddress} on chain ${chainId}`);
-      const { data: reserves } = await useContractRead({
-        address: lpAddress,
-        abi: UNISWAP_V2_PAIR_ABI,
-        functionName: 'getReserves',
-        chainId,
-      }) as { data: [bigint, bigint, number] | undefined };
-      
-      if (!reserves) {
-        console.warn(`No reserves data returned from LP ${lpAddress} on chain ${chainId}`);
-        return { price: null, tvl: null };
-      }
-      
-      // Determine which token in the pair is PAGE
-      const { data: token0 } = await useContractRead({
-        address: lpAddress,
-        abi: UNISWAP_V2_PAIR_ABI,
-        functionName: 'token0',
-        chainId,
-      }) as { data: `0x${string}` | undefined };
-      
-      if (!token0) {
-        console.warn(`Could not determine token0 for LP ${lpAddress} on chain ${chainId}`);
-        return { price: null, tvl: null };
-      }
-      
-      // Format reserves based on token position
-      const isPageToken0 = token0.toLowerCase() === tokenAddress.toLowerCase();
-      console.log(`Token is ${isPageToken0 ? 'token0' : 'token1'} in the LP pair on chain ${chainId}`);
-      
-      const [reserve0, reserve1] = reserves;
-      
-      const ethReserve = isPageToken0
-        ? Number(formatUnits(reserve1, 18))  // ETH has 18 decimals
-        : Number(formatUnits(reserve0, 18));
-      
-      const pageReserve = isPageToken0
-        ? Number(formatUnits(reserve0, tokenDecimals))
-        : Number(formatUnits(reserve1, tokenDecimals));
-      
-      // Calculate price based on reserves
-      const pagePriceInUsd = (ethPriceUsd * ethReserve) / pageReserve;
-      
-      // Calculate TVL (both sides of the LP)
-      const ethSideUsd = ethReserve * ethPriceUsd;
-      const pageSideUsd = pageReserve * pagePriceInUsd;
-      const totalTvlUsd = ethSideUsd + pageSideUsd;
-      
-      console.log(`Price and TVL calculation for chain ${chainId}:`, {
-        ethReserve,
-        pageReserve,
-        pagePriceInUsd,
-        ethSideUsd,
-        pageSideUsd,
-        totalTvlUsd
-      });
-      
-      return { price: pagePriceInUsd, tvl: totalTvlUsd };
-    } catch (error) {
-      console.error(`Error calculating price and TVL on chain ${chainId}:`, error);
-      return { price: null, tvl: null };
-    }
-  }
-
+  useEffect(() => {
+    console.log("Optimism token balance:", optimismTokenBalance);
+    console.log("Optimism reserves:", optimismReserves);
+    console.log("Optimism config:", optimismConfig);
+  }, [optimismTokenBalance, optimismReserves, optimismConfig]);
+  
   // Function to refresh all data
   const refreshAllData = useCallback(async () => {
     console.log('Refreshing all token data...');
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      // First get ETH price
-      const ethPrice = await fetchEthPrice();
-      
-      if (ethPrice) {
-        // Then fetch chain data in parallel
-        await Promise.all([
-          fetchBaseChainData(),
-          fetchEthereumChainData(),
-          fetchOptimismChainData()
-        ]);
-      }
+      await fetchEthPrice();
+      // The contract data will be refreshed automatically via the hooks
       
       dispatch({ type: 'SET_LAST_UPDATED', payload: new Date() });
     } catch (error) {
@@ -572,25 +440,15 @@ export function TokenDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [fetchEthPrice, fetchBaseChainData, fetchEthereumChainData, fetchOptimismChainData]);
+  }, [fetchEthPrice]);
 
-  // Initial data fetch on component mount
+  // Initial data fetch
   useEffect(() => {
     refreshAllData();
   }, [refreshAllData]);
-
-  // Fetch chain data when ETH price changes
-  useEffect(() => {
-    if (state.ethPrice) {
-      console.log('ETH price updated, fetching chain data...');
-      fetchBaseChainData();
-      fetchEthereumChainData();
-      fetchOptimismChainData();
-    }
-  }, [state.ethPrice, fetchBaseChainData, fetchEthereumChainData, fetchOptimismChainData]);
-
+  
   // Calculate global loading state
-  const isLoading = Object.values(state.chains).some(chain => chain.loading);
+  const isLoading = state.loading || Object.values(state.chains).some(chain => chain.loading);
 
   // Prepare the context value
   const contextValue: TokenDataContextType = {
@@ -606,7 +464,6 @@ export function TokenDataProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Hook for consuming the context
 export function useTokenData() {
   const context = useContext(TokenDataContext);
   if (!context) {

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrbisProvider } from './contexts/OrbisContext'
 import { ForumProvider } from './contexts/ForumContext'
 import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { mainnet } from 'viem/chains'
+import { mainnet, optimism, base } from 'viem/chains'
 import { http } from 'viem'
 
 // Import your components
@@ -23,10 +23,12 @@ import BookList from './features/books/BookList'
 const config = getDefaultConfig({
   appName: 'Readme Clubs',
   projectId: '5e709b61d319ac0c7d59daa4240e3daf',
-  chains: [mainnet],
+  chains: [mainnet, optimism, base], 
   ssr: true,
   transports: {
-    '1': http()
+    '1': http(),
+    '10': http(), // Add Optimism transport
+    '8453': http() // Add Base transport
   }
 })
 
