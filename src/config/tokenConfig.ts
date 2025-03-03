@@ -30,6 +30,7 @@ export const PAGE_TOKENS: TokenConfig[] = [
     symbol: 'PAGE',
     name: 'Page',
     logoURI: '/images/page-token-logo.png',
+    lpAddress: '0x9a25d21e204f10177738edb0c3345bd88478aaa2', 
     dexUrl: 'https://app.uniswap.org/#/swap?outputCurrency=0x60e683C6514Edd5F758A55b6f393BeBBAfaA8d5e'
   },
   {
@@ -39,16 +40,8 @@ export const PAGE_TOKENS: TokenConfig[] = [
     symbol: 'PAGE',
     name: 'Page',
     logoURI: '/images/page-token-logo.png',
+    lpAddress: '0x5421DA31D54640b58355d8D16D78af84D34D2405', 
     dexUrl: 'https://app.uniswap.org/#/swap?outputCurrency=0xe67E77c47a37795c0ea40A038F7ab3d76492e803&chain=optimism'
-  },
-  {
-    chainId: polygon.id,
-    address: '0x9ceE70895726B0ea14E6019C961dAf32222a7C2f',
-    decimals: 8,
-    symbol: 'PAGE',
-    name: 'Page',
-    logoURI: '/images/page-token-logo.png',
-    dexUrl: 'https://quickswap.exchange/#/swap?outputCurrency=0x9ceE70895726B0ea14E6019C961dAf32222a7C2f'
   },
   {
     chainId: base.id,
