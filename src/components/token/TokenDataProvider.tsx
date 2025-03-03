@@ -6,6 +6,8 @@ import { formatUnits } from 'viem';
 import type { Address } from 'viem';
 import { PAGE_TOKENS } from '../../config/tokenConfig';
 
+
+
 // ------------------- TYPES -------------------
 
 interface ChainData {
@@ -352,7 +354,7 @@ useEffect(() => {
   }, [ethTokenBalance, ethReserves, ethereumConfig]);
   
   // Calculate prices and TVL for Optimism
-  useEffect(() => {
+useEffect(() => {
     if (optimismReserves && state.ethPrice && optimismConfig) {
       try {
         // Log detailed calculation steps
@@ -370,9 +372,9 @@ useEffect(() => {
         
         const [reserve0, reserve1] = reserves;
         
-        // Assuming same order as Ethereum (PAGE is token0, ETH is token1)
-        const ethReserve = Number(formatUnits(reserve1, 18));
-        const pageReserve = Number(formatUnits(reserve0, optimismConfig.decimals));
+        // FLIPPED THE ORDER: Assume PAGE is token1, ETH is token0 on Optimism (opposite of Ethereum)
+        const ethReserve = Number(formatUnits(reserve0, 18));
+        const pageReserve = Number(formatUnits(reserve1, optimismConfig.decimals));
         
         console.log("Optimism calculation values:", {
           ethReserve,
