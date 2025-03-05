@@ -10,6 +10,9 @@ export default defineConfig({
     react(),
     commonjs(),
     VitePWA({
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
+      },
       registerType: 'autoUpdate',
       manifest: {
         name: 'Readme Clubs',
