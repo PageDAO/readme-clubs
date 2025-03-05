@@ -21,6 +21,7 @@ export interface CosmosTokenConfig {
   name: string
   logoURI: string
   osmosisPoolId?: string
+  dexUrl?: string
 }
 
 export const PAGE_TOKENS: TokenConfig[] = [
@@ -67,5 +68,6 @@ export const COSMOS_PAGE_TOKEN: CosmosTokenConfig = {
   symbol: 'PAGE',
   name: 'Page',
   logoURI: '/images/page-token-logo.png',
-  osmosisPoolId: '1344' 
+  osmosisPoolId: '1344' ,
+  dexUrl: 'https://app.osmosis.zone/pools/1344',
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { COSMOS_PAGE_TOKEN } from '../config/tokenConfig';
 import { fetchOsmoPrice, calculatePagePrice, calculateTVL, calculateMarketCap } from '../utils/tokenPrices';
+import { useOsmoPrice } from '../hooks/token/useOsmoPrice';
 
 // Constants
 const OSMOSIS_PAGE_DENOM = "ibc/23A62409E4AD8133116C249B1FA38EED30E500A115D7B153109462CD82C1CD99";
@@ -63,6 +64,9 @@ interface IBCTokenContextType extends IBCTokenState {
 const IBCTokenContext = createContext<IBCTokenContextType | null>(null);
 
 export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
+  // Add the hook to your component
+  const { osmoPrice, loading: osmoPriceLoading, error: osmoPriceError } = useOsmoPrice();
+
   // Use refs to track state and prevent infinite loops
   const initialLoadRef = useRef(false);
   const isRefreshingRef = useRef(false);
@@ -134,20 +138,16 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
     }
     
     requestsInProgressRef.current.add(requestId);
-    console.log("Starting fetchTokenData");
     
     try {
       // Get pool data
       const poolResponse = await fetch(`${OSMOSIS_LCD}/osmosis/gamm/v1beta1/pools/${POOL_ID}`);
-      console.log("Pool response status:", poolResponse.status);
       
       if (!poolResponse.ok) {
         throw new Error(`Failed to fetch pool data: ${poolResponse.statusText}`);
       }
       
       const poolData = await poolResponse.json();
-      console.log("Received pool data:", poolData);
-      
       const assets = poolData.pool?.pool_assets;
       
       if (!assets || assets.length !== 2) {
@@ -166,42 +166,47 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Could not identify tokens in pool");
       }
       
-      console.log("PAGE asset:", pageAsset);
-      console.log("OSMO asset:", osmoAsset);
-      
-      // Fetch OSMO price
-      console.log("Fetching OSMO price");
-      const osmoPrice = await fetchOsmoPrice();
+      // Use the osmoPrice from the hook instead of fetching it
       console.log("OSMO price:", osmoPrice);
       
-      // Calculate PAGE price, TVL, and market cap using our utility functions
-      const pagePrice = calculatePagePrice(
-        osmoAsset.token.amount,
-        pageAsset.token.amount,
-        osmoPrice
-      );
-      console.log("Calculated PAGE price:", pagePrice);
+      let price: number | null = null;
+      let tvl: number | null = null;
+      let marketCap: number | null = null;
+
+      // Only calculate if we have a valid OSMO price
+      if (osmoPrice !== null) {
+        // Calculate PAGE price based on pool ratio
+        const pageAmount = Number(pageAsset.token.amount) / 1e8; // PAGE has 8 decimals
+        const osmoAmount = Number(osmoAsset.token.amount) / 1e6; // OSMO has 6 decimals
+        
+        // PAGE price in USD = (OSMO amount * OSMO price in USD) / PAGE amount
+        price = (osmoAmount * osmoPrice) / pageAmount;
+        console.log("Calculated PAGE price:", price);
+        
+        // Calculate TVL
+        tvl = pageAmount * price * 2; // Multiply by 2 since it's roughly half the pool
+        console.log("Calculated TVL:", tvl);
+        
+        // Calculate market cap (estimate based on total supply)
+        const totalSupply = 100000000; // 100M total supply
+        marketCap = totalSupply * price;
+        console.log("Calculated market cap:", marketCap);
+      }
       
-      const tvl = calculateTVL(osmoAsset.token.amount, osmoPrice);
-      console.log("Calculated TVL:", tvl);
-      
-      const marketCap = calculateMarketCap(PAGE_CIRCULATING_SUPPLY, pagePrice);
-      console.log("Calculated market cap:", marketCap);
-      
-      // Return processed data
+      // Return data with calculations
       const result = {
         poolData: {
           pageAmount: pageAsset.token.amount,
           osmoAmount: osmoAsset.token.amount,
           poolId: POOL_ID
         },
-        price: pagePrice,
-        marketCap: marketCap,
-        volume24h: null, // We don't have reliable volume data
-        tvl: tvl,
+        price,
+        marketCap,
+        volume24h: null, // We don't have volume data
+        tvl,
         tokenInfo: {
-          supply: PAGE_CIRCULATING_SUPPLY,
-          holders: null // We don't have holder data
+          supply: null,
+          holders: null
         }
       };
       
@@ -211,10 +216,10 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
       console.error("Error fetching token data:", error);
       throw error;
     } finally {
-      console.log("Completed fetchTokenData, removing from in-progress requests");
       requestsInProgressRef.current.delete(requestId);
+      console.log("Completed fetchTokenData, removing from in-progress requests");
     }
-  }, []);
+  }, [osmoPrice]); // Add osmoPrice to dependencies
 
   // Fetch user balance
   const fetchUserBalance = useCallback(async (address: string): Promise<number> => {
@@ -414,6 +419,16 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
       keplrAddress: null
     }));
   }, []);
+
+
+  // In IBCTokenProvider, add a useEffect that watches osmoPrice
+useEffect(() => {
+  // Only run this effect if osmoPrice has a value and isn't null
+  if (osmoPrice !== null) {
+    console.log("OSMO price updated, refreshing token data:", osmoPrice);
+    refreshChainData('osmosis-1').catch(console.error);
+  }
+}, [osmoPrice, refreshChainData]); // Add osmoPrice as a dependency
 
   // Load initial data only once
   useEffect(() => {
