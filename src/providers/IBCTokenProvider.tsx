@@ -1,5 +1,5 @@
 // src/providers/IBCTokenProvider.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { COSMOS_PAGE_TOKEN } from '../config/tokenConfig';
 
 // Define the types for our IBC chains
@@ -65,6 +65,11 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
     },
     isKeplrConnected: false
   });
+  
+  // Use refs to prevent infinite loops
+  const initialDataLoadedRef = useRef(false);
+  const isRefreshingDataRef = useRef(false);
+  const isConnectingKeplrRef = useRef(false);
 
   // Function to fetch token data from Osmosis API
   const fetchTokenData = useCallback(async (chainId: string): Promise<{ price: number, tvl: number }> => {
@@ -185,16 +190,36 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
 
   // Function to refresh all chains
   const refreshAllData = useCallback(async () => {
+    // Prevent multiple concurrent refreshes
+    if (isRefreshingDataRef.current) {
+      console.log("Already refreshing data, skipping duplicate request");
+      return;
+    }
+    
+    isRefreshingDataRef.current = true;
     console.log("Refreshing all chains");
-    const chainIds = Object.keys(state.chains);
-    for (const chainId of chainIds) {
-      await refreshChainData(chainId);
+    
+    try {
+      const chainIds = Object.keys(state.chains);
+      for (const chainId of chainIds) {
+        await refreshChainData(chainId);
+      }
+    } finally {
+      isRefreshingDataRef.current = false;
     }
   }, [refreshChainData, state.chains]);
 
   // Function to connect to Keplr wallet
   const connectKeplr = useCallback(async (): Promise<string | null> => {
+    // Prevent multiple concurrent connection attempts
+    if (isConnectingKeplrRef.current) {
+      console.log("Already connecting to Keplr, skipping duplicate request");
+      return null;
+    }
+    
+    isConnectingKeplrRef.current = true;
     console.log("Connecting to Keplr");
+    
     try {
       if (typeof window === 'undefined' || !window.keplr) {
         console.log("Keplr extension not found");
@@ -214,31 +239,77 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
       const key = await window.keplr.getKey(chainId);
       const address = key.bech32Address;
 
+      // Update connection state
       setState(prev => ({
         ...prev,
         isKeplrConnected: true
       }));
 
-      // Refresh data after connecting
-      await refreshAllData();
+      // We don't call refreshAllData here anymore to prevent the loop
+      // Instead, we'll update the chains that need data after the connection
+
+      // Just refresh balance data for the connected wallet
+      if (initialDataLoadedRef.current) {
+        // Refresh only the necessary data after connecting
+        for (const chainId of chainIds) {
+          try {
+            if (window.keplr) {
+              await window.keplr.enable(chainId);
+              const key = await window.keplr.getKey(chainId);
+              const address = key.bech32Address;
+              
+              const balance = await fetchUserBalance(chainId, address);
+              const staking = await fetchStakingInfo(chainId, address);
+              
+              setState(prev => ({
+                ...prev,
+                chains: {
+                  ...prev.chains,
+                  [chainId]: {
+                    ...prev.chains[chainId],
+                    balance,
+                    staking,
+                    lastUpdated: new Date()
+                  }
+                }
+              }));
+            }
+          } catch (err) {
+            console.error(`Error updating balance for ${chainId}:`, err);
+          }
+        }
+      }
 
       return address;
     } catch (error) {
       console.error("Failed to connect to Keplr", error);
       return null;
+    } finally {
+      isConnectingKeplrRef.current = false;
     }
-  }, [state.chains, refreshAllData]);
+  }, [state.chains, fetchUserBalance, fetchStakingInfo]);
 
-  // Load initial data
+  // Load initial data only once
   useEffect(() => {
-    console.log("IBCTokenProvider initialized");
-    refreshAllData();
-    
-    // Check if Keplr is already connected
-    if (typeof window !== 'undefined' && window.keplr) {
-      connectKeplr().catch(console.error);
+    if (!initialDataLoadedRef.current) {
+      console.log("IBCTokenProvider initialized");
+      
+      // First, fetch the data
+      refreshAllData().catch(console.error);
+      
+      // Mark as initialized to prevent repeated refreshes
+      initialDataLoadedRef.current = true;
+      
+      // Then try to connect to Keplr if available
+      if (typeof window !== 'undefined' && window.keplr) {
+        // We delay this slightly to ensure the initial data fetch has started
+        setTimeout(() => {
+          connectKeplr().catch(console.error);
+        }, 100);
+      }
     }
-  }, [refreshAllData, connectKeplr]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty to run only once
 
   const contextValue = {
     ...state,
@@ -246,8 +317,6 @@ export function IBCTokenProvider({ children }: { children: React.ReactNode }) {
     refreshChainData,
     refreshAllData
   };
-
-  console.log("IBCTokenProvider rendering with value:", contextValue);
   
   return (
     <IBCTokenContext.Provider value={contextValue}>
