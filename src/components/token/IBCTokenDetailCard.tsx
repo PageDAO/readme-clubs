@@ -15,6 +15,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
   const { chains, isKeplrConnected, connectKeplr } = useIBCToken();
   const chainData = chains[chainId];
   
+  // Only call useIBCPage once to maintain consistent hook order
   const { osmosis, userPositions, loading: pageDataLoading } = useIBCPage();
   
   // Get pool data for this specific chain
@@ -36,6 +37,13 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
     connectKeplr();
   };
   
+  // Helper function to render data with error checking
+  const renderData = (value: number | null, formatter: (val: number) => string, errorText = "ERROR") => {
+    if (chainData.error) return errorText;
+    if (value === null || value === 0) return "No data available";
+    return formatter(value);
+  };
+  
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-6">
@@ -53,16 +61,21 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
           )}
         </div>
         
+        {chainData.error && (
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+            <p className="font-bold">Error loading data:</p>
+            <p>{chainData.error}</p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 mb-1">$PAGE Price</p>
             <div className="flex items-baseline">
               <p className="text-2xl font-bold">
-                {chainData.price !== null 
-                  ? `$${chainData.price.toFixed(6)}`
-                  : 'Loading...'}
+                {renderData(chainData.price, val => `$${val.toFixed(6)}`)}
               </p>
-              {osmosis.tokenInfo.priceChange24h !== 0 && (
+              {!chainData.error && osmosis.tokenInfo.priceChange24h !== 0 && (
                 <span className={`ml-2 text-sm ${osmosis.tokenInfo.priceChange24h > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {osmosis.tokenInfo.priceChange24h > 0 ? '+' : ''}{osmosis.tokenInfo.priceChange24h.toFixed(2)}%
                 </span>
@@ -72,7 +85,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
           <div>
             <p className="text-gray-600 mb-1">Market Cap</p>
             <p className="text-2xl font-bold">
-              ${osmosis.tokenInfo.marketCap.toLocaleString()}
+              {renderData(chainData.marketCap, val => `$${val.toLocaleString()}`)}
             </p>
           </div>
         </div>
@@ -82,13 +95,13 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
           <div>
             <p className="text-gray-600 mb-1">24h Volume</p>
             <p className="text-xl font-bold">
-              ${osmosis.tokenInfo.volume24h.toLocaleString()}
+              {renderData(chainData.volume24h, val => `$${val.toLocaleString()}`)}
             </p>
           </div>
           <div>
             <p className="text-gray-600 mb-1">TVL</p>
             <p className="text-xl font-bold">
-              ${chainData.tvl?.toLocaleString() ?? 'Loading...'}
+              {renderData(chainData.tvl, val => `$${val.toLocaleString()}`)}
             </p>
           </div>
         </div>
@@ -103,7 +116,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
                   {chainData.balance.toFixed(2)} $PAGE
                 </p>
                 <p className="text-sm text-blue-700">
-                  ≈ ${chainData.price ? (chainData.balance * chainData.price).toFixed(2) : '0.00'} USD
+                  ≈ ${chainData.price && !chainData.error ? (chainData.balance * chainData.price).toFixed(2) : 'N/A'} USD
                 </p>
               </div>
               <a 
@@ -131,7 +144,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
         )}
         
         {/* Staking Info */}
-        {showStakingDetails && isKeplrConnected && (
+        {showStakingDetails && isKeplrConnected && !chainData.error && (
           <div className={`p-4 rounded-lg mb-6 ${chainData.staking.isStaking ? 'bg-green-50' : 'bg-gray-50'}`}>
             <h4 className={`font-bold ${chainData.staking.isStaking ? 'text-green-800' : 'text-gray-800'} mb-2`}>
               {chainData.staking.isStaking ? 'Your Staking Position' : 'Not Currently Staking'}
@@ -205,11 +218,19 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600 text-sm">Token Holders</p>
-              <p className="text-lg font-bold">{pageDataLoading ? 'Loading...' : useIBCPage().dao.tokenHolders.toLocaleString()}</p>
+              <p className="text-lg font-bold">
+                {!chainData.error && !pageDataLoading ? 
+                  useIBCPage().dao.tokenHolders.toLocaleString() : 
+                  renderData(null, () => "", "ERROR")}
+              </p>
             </div>
             <div>
               <p className="text-gray-600 text-sm">Proposals</p>
-              <p className="text-lg font-bold">{pageDataLoading ? 'Loading...' : useIBCPage().dao.proposalCount}</p>
+              <p className="text-lg font-bold">
+                {!chainData.error && !pageDataLoading ? 
+                  useIBCPage().dao.proposalCount : 
+                  renderData(null, () => "", "ERROR")}
+              </p>
             </div>
             {userPositions && (
               <>
@@ -247,12 +268,6 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             View Explorer
           </a>
         </div>
-        
-        {chainData.error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded">
-            Error: {chainData.error}
-          </div>
-        )}
         
         {chainData.lastUpdated && (
           <p className="mt-4 text-xs text-gray-500">
