@@ -1,73 +1,98 @@
-// src/components/token/IBCTokenDetailCard.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useIBCToken } from '../../providers/IBCTokenProvider';
-import { useIBCPage } from '../../hooks/token/useIBCPage';
 
 interface IBCTokenDetailCardProps {
   chainId: string;
   showStakingDetails?: boolean;
 }
 
-const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
+export const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
   chainId,
   showStakingDetails = true
 }) => {
-  const { chains, isKeplrConnected, connectKeplr } = useIBCToken();
+  const { 
+    chains, 
+    isKeplrConnected, 
+    connectKeplr, 
+    refreshChainData 
+  } = useIBCToken();
+  
+  // Get chain data with proper error handling
   const chainData = chains[chainId];
-  
-  // Only call useIBCPage once to maintain consistent hook order
-  const { osmosis, userPositions, loading: pageDataLoading } = useIBCPage();
-  
-  // Get pool data for this specific chain
-  const poolData = chainData.staking.poolId 
-    ? osmosis.pools.find(p => p.id === chainData.staking.poolId) 
-    : null;
-  
-  // Get user position in this pool
-  const userPosition = userPositions?.osmosis.lpPositions.find(
-    pos => pos.poolId === chainData.staking.poolId
-  );
-  
+
   if (!chainData) {
-    return <div>Chain not supported</div>;
+    return <div className="p-4 bg-red-100 rounded-lg">Chain not supported: {chainId}</div>;
   }
-  
+
   // Handle connect button click
   const handleConnect = () => {
     connectKeplr();
   };
   
+  // Handle refresh button click
+  const handleRefresh = () => {
+    refreshChainData(chainId);
+  };
+
   // Helper function to render data with error checking
-  const renderData = (value: number | null, formatter: (val: number) => string, errorText = "ERROR") => {
-    if (chainData.error) return errorText;
-    if (value === null || value === 0) return "No data available";
+  const renderData = (value: number | null | undefined, formatter: (val: number) => string, fallback = "Not available") => {
+    if (chainData.loading) return <div className="animate-pulse bg-gray-200 h-6 w-20 rounded"></div>;
+    if (value === null || value === undefined) return fallback;
     return formatter(value);
   };
-  
+
+  // Format pool data for display
+  const poolInfo = useMemo(() => {
+    if (!chainData.poolData) return null;
+    
+    const { pageAmount, osmoAmount } = chainData.poolData;
+    const pageFormatted = Number(pageAmount) / 1e8; // 8 decimals for PAGE
+    const osmoFormatted = Number(osmoAmount) / 1e6; // 6 decimals for OSMO
+    
+    return {
+      pageAmount: pageFormatted.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+      osmoAmount: osmoFormatted.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+      poolId: chainData.poolData.poolId
+    };
+  }, [chainData.poolData]);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <img 
-              src="/images/osmosis-logo.svg" 
-              alt={chainData.name} 
-              className="w-8 h-8 mr-2" 
+            <img
+              src="/images/osmosis-logo.svg"
+              alt={chainData.name}
+              className="w-8 h-8 mr-2"
             />
             <h3 className="text-xl font-bold">{chainData.name}</h3>
           </div>
-          {chainData.loading && (
-            <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-purple-500 rounded-full"></div>
-          )}
+          
+          <div className="flex items-center gap-2">
+            {chainData.loading && (
+              <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-purple-500 rounded-full"></div>
+            )}
+            
+            <button 
+              onClick={handleRefresh}
+              className="p-1 text-gray-500 hover:text-purple-500"
+              title="Refresh data"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
-        
+
         {chainData.error && (
           <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
             <p className="font-bold">Error loading data:</p>
             <p>{chainData.error}</p>
           </div>
         )}
-        
+
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 mb-1">$PAGE Price</p>
@@ -75,11 +100,6 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
               <p className="text-2xl font-bold">
                 {renderData(chainData.price, val => `$${val.toFixed(6)}`)}
               </p>
-              {!chainData.error && osmosis.tokenInfo.priceChange24h !== 0 && (
-                <span className={`ml-2 text-sm ${osmosis.tokenInfo.priceChange24h > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {osmosis.tokenInfo.priceChange24h > 0 ? '+' : ''}{osmosis.tokenInfo.priceChange24h.toFixed(2)}%
-                </span>
-              )}
             </div>
           </div>
           <div>
@@ -89,13 +109,13 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             </p>
           </div>
         </div>
-        
+
         {/* More token stats */}
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 mb-1">24h Volume</p>
             <p className="text-xl font-bold">
-              {renderData(chainData.volume24h, val => `$${val.toLocaleString()}`)}
+              {renderData(chainData.volume24h, val => `$${val.toLocaleString()}`, "Not tracked")}
             </p>
           </div>
           <div>
@@ -105,7 +125,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             </p>
           </div>
         </div>
-        
+
         {/* User's balance */}
         {isKeplrConnected ? (
           <div className="p-4 bg-blue-50 rounded-lg mb-6">
@@ -116,10 +136,10 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
                   {chainData.balance.toFixed(2)} $PAGE
                 </p>
                 <p className="text-sm text-blue-700">
-                  ≈ ${chainData.price && !chainData.error ? (chainData.balance * chainData.price).toFixed(2) : 'N/A'} USD
+                  ≈ ${chainData.price ? (chainData.balance * chainData.price).toFixed(2) : 'N/A'} USD
                 </p>
               </div>
-              <a 
+              <a
                 href="https://app.osmosis.zone/assets"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -142,116 +162,65 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             </button>
           </div>
         )}
-        
-        {/* Staking Info */}
-        {showStakingDetails && isKeplrConnected && !chainData.error && (
-          <div className={`p-4 rounded-lg mb-6 ${chainData.staking.isStaking ? 'bg-green-50' : 'bg-gray-50'}`}>
-            <h4 className={`font-bold ${chainData.staking.isStaking ? 'text-green-800' : 'text-gray-800'} mb-2`}>
-              {chainData.staking.isStaking ? 'Your Staking Position' : 'Not Currently Staking'}
-            </h4>
-            
-            {chainData.staking.isStaking ? (
+
+        {/* Pool data section */}
+        {poolInfo && (
+          <div className="p-4 bg-gray-50 rounded-lg mb-6">
+            <h4 className="font-medium text-gray-700 mb-2">Pool Data (Pool {poolInfo.poolId})</h4>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <p className="text-green-700 text-sm">Staked Amount</p>
-                    <p className="text-xl font-bold">{chainData.staking.stakedAmount.toFixed(2)} $PAGE</p>
-                    {userPosition && (
-                      <p className="text-sm text-green-700">
-                        Value: ${userPosition.valueUsd.toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-green-700 text-sm">Current APR</p>
-                    <p className="text-xl font-bold">{poolData?.apr.toFixed(2) || 'N/A'}%</p>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-green-700 text-sm">Rewards Earned</p>
-                  <p className="text-xl font-bold">{chainData.staking.rewards.toFixed(4)} $PAGE</p>
-                </div>
-                <div className="flex space-x-2">
-                  <a 
-                    href={`https://app.osmosis.zone/pool/${chainData.staking.poolId}`}
-                    target="_blank"
-                    rel="noopener noreferrer" 
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Manage Staking
-                  </a>
-                  <a 
-                    href="https://app.osmosis.zone/assets"
-                    target="_blank"
-                    rel="noopener noreferrer" 
-                    className="px-4 py-2 bg-green-100 text-green-800 rounded hover:bg-green-200"
-                  >
-                    Claim Rewards
-                  </a>
-                </div>
+                <p className="text-gray-600 text-sm">PAGE in Pool</p>
+                <p className="font-mono">{poolInfo.pageAmount}</p>
               </div>
-            ) : (
               <div>
-                <p className="text-gray-600 mb-3">
-                  Stake your $PAGE tokens to earn rewards and gain access to exclusive content.
-                </p>
-                <div className="mb-3">
-                  <p className="text-gray-700 text-sm">Current Pool APR</p>
-                  <p className="text-xl font-bold">{poolData?.apr.toFixed(2) || 'N/A'}%</p>
-                </div>
-                <a 
-                  href={`https://app.osmosis.zone/pool/${chainData.staking.poolId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-                >
-                  Start Staking
-                </a>
+                <p className="text-gray-600 text-sm">OSMO in Pool</p>
+                <p className="font-mono">{poolInfo.osmoAmount}</p>
               </div>
-            )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              This data is used to calculate the PAGE price and TVL.
+            </p>
           </div>
         )}
-        
-        {/* DAO stats */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h4 className="font-bold text-gray-800 mb-3">Page DAO Stats</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600 text-sm">Token Holders</p>
-              <p className="text-lg font-bold">
-                {!chainData.error && !pageDataLoading ? 
-                  useIBCPage().dao.tokenHolders.toLocaleString() : 
-                  renderData(null, () => "", "ERROR")}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">Proposals</p>
-              <p className="text-lg font-bold">
-                {!chainData.error && !pageDataLoading ? 
-                  useIBCPage().dao.proposalCount : 
-                  renderData(null, () => "", "ERROR")}
-              </p>
-            </div>
-            {userPositions && (
-              <>
+
+        {/* Staking info section */}
+        {showStakingDetails && chainData.staking && (
+          <div className="p-4 bg-gray-50 rounded-lg mb-6">
+            <h4 className="font-medium text-gray-700 mb-2">Staking</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-gray-600 text-sm">APR</p>
+                <p className="font-medium">
+                  {chainData.staking.apr !== null 
+                    ? `${chainData.staking.apr.toFixed(2)}%` 
+                    : "Not available"}
+                </p>
+              </div>
+              {isKeplrConnected && (
                 <div>
-                  <p className="text-gray-600 text-sm">Your Voting Power</p>
-                  <p className="text-lg font-bold">{userPositions.governance.votingPower.toFixed(2)} PAGE</p>
-                  <p className="text-xs text-gray-500">{userPositions.governance.votingPowerPercentage.toFixed(2)}% of total</p>
+                  <p className="text-gray-600 text-sm">Your Staked</p>
+                  <p className="font-medium">
+                    {chainData.staking.stakedAmount.toFixed(2)} $PAGE
+                  </p>
                 </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Your Proposals</p>
-                  <p className="text-lg font-bold">Created: {userPositions.governance.proposals.created}</p>
-                  <p className="text-xs text-gray-500">Voted: {userPositions.governance.proposals.voted}</p>
-                </div>
-              </>
-            )}
+              )}
+            </div>
+            <div className="mt-2">
+              <a
+                href={`https://app.osmosis.zone/stake?poolId=${chainData.staking.poolId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-600 text-sm hover:text-purple-800"
+              >
+                Stake on Osmosis →
+              </a>
+            </div>
           </div>
-        </div>
-        
+        )}
+
         {/* Action buttons */}
         <div className="grid grid-cols-2 gap-4">
-          <a 
+          <a
             href="https://app.osmosis.zone/assets/PAGE"
             target="_blank"
             rel="noopener noreferrer"
@@ -259,7 +228,7 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
           >
             Trade on Osmosis
           </a>
-          <a 
+          <a
             href="https://www.mintscan.io/osmosis/assets/PAGE"
             target="_blank"
             rel="noopener noreferrer"
@@ -268,15 +237,17 @@ const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             View Explorer
           </a>
         </div>
-        
+
         {chainData.lastUpdated && (
-          <p className="mt-4 text-xs text-gray-500">
-            Last updated: {chainData.lastUpdated.toLocaleString()}
-          </p>
+          <div className="mt-4 flex justify-between items-center text-xs text-gray-500">
+            <p>Data from Osmosis Pool #{chainData.staking?.poolId || '1344'}</p>
+            <p>Last updated: {chainData.lastUpdated.toLocaleString()}</p>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
+// Only use a named export for consistency
 export default IBCTokenDetailCard;

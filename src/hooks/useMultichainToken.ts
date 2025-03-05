@@ -2,7 +2,15 @@
 import { useAccount, useChainId, useSwitchChain, useContractRead } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useIBCToken } from '../providers/IBCTokenProvider'
+import { 
+  OSMOSIS_PAGE_DENOM, 
+  OSMOSIS_PAGE_CONFIG,
+  OSMOSIS_CHAIN_ID,
+  REFRESH_INTERVAL_MS 
+} from '../constants/ibc'
+
 
 // TOKEN CONFIGURATION
 // Define token addresses for each chain
@@ -10,9 +18,6 @@ const ETH_PAGE_ADDRESS = '0x60e683C6514Edd5F758A55b6f393BeBBAfaA8d5e' as const
 const OPTIMISM_PAGE_ADDRESS = '0xe67E77c47a37795c0ea40A038F7ab3d76492e803' as const
 const POLYGON_PAGE_ADDRESS = '0x9ceE70895726B0ea14E6019C961dAf32222a7C2f' as const
 const BASE_PAGE_ADDRESS = '0xc4730f86d1F86cE0712a7b17EE919Db7dEFad7FE' as const
-
-// Osmosis IBC denom
-const OSMOSIS_PAGE_DENOM = 'ibc/23A62409E4AD8133116C249B1FA38EED30E500A115D7B153109462CD82C1CD99'
 
 // ERC20 ABI for balance checking
 const ERC20_ABI = [
@@ -98,26 +103,11 @@ export const PAGE_TOKENS: TokenConfig[] = [
   }
 ]
 
-export const COSMOS_PAGE_TOKEN: CosmosTokenConfig = {
-  chainType: 'cosmos',
-  chainId: 'osmosis-1',
-  denom: OSMOSIS_PAGE_DENOM,
-  decimals: 8,
-  symbol: 'PAGE',
-  name: 'Page',
-  dexUrl: 'https://app.osmosis.zone/assets',
-  explorerUrl: 'https://www.mintscan.io/osmosis/assets',
-  daodaoEndpoint: 'https://daodao-api.junonetwork.io/osmosis/tokens' // Update this with the actual endpoint
-}
+// Use imported OSMOSIS_PAGE_CONFIG instead of defining it here
+export const COSMOS_PAGE_TOKEN: CosmosTokenConfig = OSMOSIS_PAGE_CONFIG;
 
 // Combined array of all chains (for UI purposes)
 export const ALL_CHAIN_CONFIGS = [...PAGE_TOKENS, COSMOS_PAGE_TOKEN]
-
-// Fallback Osmosis data to use instead of API calls
-const OSMOSIS_FALLBACK = {
-  price: 0.060,
-  tvl: 450000
-};
 
 // HOOK IMPLEMENTATION
 export function useMultichainToken() {
@@ -126,9 +116,12 @@ export function useMultichainToken() {
   const { switchChain } = useSwitchChain()
   const [selectedChainId, setSelectedChainId] = useState<number | null>(chainId || 8453) // Default to Base if not connected
   const [selectedChainType, setSelectedChainType] = useState<'evm' | 'cosmos'>('evm')
-  const [osmosisTokenData, setOsmosisTokenData] = useState<{ price: number, tvl?: number }>(OSMOSIS_FALLBACK)
   const [isLoadingOsmosisData, setIsLoadingOsmosisData] = useState<boolean>(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
+  
+  // Use IBCTokenProvider for Osmosis data instead of duplicating fetching logic
+  const ibcToken = useIBCToken();
+  const osmosisChainData = ibcToken.chains[OSMOSIS_CHAIN_ID];
   
   // Use a ref to track initialization and prevent multiple API calls
   const osmosisDataFetchedRef = useRef(false)
@@ -153,35 +146,7 @@ export function useMultichainToken() {
     ? Number(formatUnits(pageBalanceData, currentToken.decimals))
     : 0
 
-  // Function to fetch Osmosis token data (using fallback for now)
-  const fetchOsmosisTokenData = useCallback(async (): Promise<{ price: number, tvl?: number }> => {
-    console.log("Using fallback Osmosis data instead of making API call");
-    return OSMOSIS_FALLBACK;
-    
-    /* Commented out to prevent excessive API calls with DNS errors
-    try {
-      const response = await fetch(COSMOS_PAGE_TOKEN.daodaoEndpoint || '');
-      const data = await response.json();
-      
-      // Find the token in the response
-      const tokenData = data.tokens?.find((token: any) => token.denom === OSMOSIS_PAGE_DENOM);
-      
-      if (tokenData) {
-        return {
-          price: tokenData.price || 0,
-          tvl: tokenData.liquidity || undefined
-        };
-      }
-      
-      return OSMOSIS_FALLBACK;
-    } catch (error) {
-      console.error('Error fetching Osmosis token data:', error);
-      return OSMOSIS_FALLBACK;
-    }
-    */
-  }, []);
-
-  // Function to refresh Osmosis token data
+  // Function to refresh Osmosis token data (now using IBCTokenProvider)
   const refreshOsmosisData = useCallback(async () => {
     // Skip if already loading to prevent duplicate requests
     if (isLoadingOsmosisData) {
@@ -193,18 +158,16 @@ export function useMultichainToken() {
     setIsLoadingOsmosisData(true);
     
     try {
-      const data = await fetchOsmosisTokenData();
-      setOsmosisTokenData(data);
+      // Use IBCTokenProvider to refresh data
+      await ibcToken.refreshChainData(OSMOSIS_CHAIN_ID);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error refreshing Osmosis data:', error);
-      // Use fallback data on error
-      setOsmosisTokenData(OSMOSIS_FALLBACK);
     } finally {
       setIsLoadingOsmosisData(false);
       osmosisDataFetchedRef.current = true;
     }
-  }, [fetchOsmosisTokenData, isLoadingOsmosisData]);
+  }, [ibcToken, isLoadingOsmosisData]);
 
   // Fetch Osmosis token data only once on initial load
   useEffect(() => {
@@ -250,7 +213,7 @@ export function useMultichainToken() {
             token.chainId === 137 ? 'Polygon' : 'Base'
     })),
     {
-      id: 'osmosis-1',
+      id: OSMOSIS_CHAIN_ID,
       type: 'cosmos' as const,
       name: 'Osmosis'
     }
@@ -265,10 +228,22 @@ export function useMultichainToken() {
     }
   }, [balance])
 
+  // Get Osmosis token data from IBCTokenProvider
+  const osmosisTokenData = useMemo(() => {
+    if (!osmosisChainData) {
+      return { price: null, tvl: null };
+    }
+    
+    return {
+      price: osmosisChainData.price,
+      tvl: osmosisChainData.tvl
+    };
+  }, [osmosisChainData]);
+
   return {
     currentToken: selectedChainType === 'evm' ? currentToken : COSMOS_PAGE_TOKEN,
     chainType: selectedChainType,
-    balance,
+    balance: selectedChainType === 'evm' ? balance : (osmosisChainData?.balance || 0),
     hasTokensOnAnyChain,
     availableChains,
     selectedChainId,
