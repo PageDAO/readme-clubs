@@ -3,19 +3,20 @@
  * Centralizes all hardcoded values previously scattered across multiple files
  */
 
-// Chain identifiers
-export const OSMOSIS_CHAIN_ID = 'osmosis-1';
-
-// Token denominations
-export const OSMOSIS_PAGE_DENOM = "ibc/23A62409E4AD8133116C249B1FA38EED30E500A115D7B153109462CD82C1CD99";
-
-// Pool configurations
-export const POOL_ID = "1344"; // The pool ID for PAGE/OSMO
-
-// API endpoints
-export const OSMOSIS_LCD = "https://lcd.osmosis.zone";
 export const DAODAO_API = "https://daodao-api.junonetwork.io/osmosis/tokens";
+export const OSMOSIS_CHAIN_ID = 'osmosis-1';
+export const OSMOSIS_PAGE_DENOM = "ibc/23A62409E4AD8133116C249B1FA38EED30E500A115D7B153109462CD82C1CD99";
+export const OSMO_USDC_DENOM = "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858";
+export const POOL_ID = "1344"; // PAGE/OSMO pool
+export const OSMO_USDC_POOL_ID = "678"; // OSMO/USDC pool
+export const OSMOSIS_LCD = "https://lcd.osmosis.zone";
 
+// Token decimal places
+export const TOKEN_DECIMALS = {
+  PAGE: 8,
+  OSMO: 6,
+  USDC: 6
+};
 // Token configuration
 export const OSMOSIS_PAGE_CONFIG = {
   chainType: 'cosmos' as const,
@@ -28,11 +29,6 @@ export const OSMOSIS_PAGE_CONFIG = {
   explorerUrl: 'https://www.mintscan.io/osmosis/assets',
 };
 
-// Decimal adjustments for various tokens
-export const TOKEN_DECIMALS = {
-  PAGE: 8,
-  OSMO: 6,
-};
 
 // Timeouts
 export const REFRESH_INTERVAL_MS = 60000; // 1 minute
