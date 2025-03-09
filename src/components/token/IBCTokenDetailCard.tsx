@@ -92,21 +92,20 @@ export const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
             <p>{chainData.error}</p>
           </div>
         )}
-
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 mb-1">$PAGE Price</p>
             <div className="flex items-baseline">
-              <p className="text-2xl font-bold">
-                {renderData(chainData.price, val => `$${val.toFixed(6)}`)}
-              </p>
+              <div className="text-2xl font-bold">
+                {renderData(chainData.price, val => `${val.toFixed(6)}`)}
+              </div>
             </div>
           </div>
           <div>
             <p className="text-gray-600 mb-1">Market Cap</p>
-            <p className="text-2xl font-bold">
-              {renderData(chainData.marketCap, val => `$${val.toLocaleString()}`)}
-            </p>
+            <div className="text-2xl font-bold">
+              {renderData(chainData.marketCap, val => `${val.toLocaleString()}`)}
+            </div>
           </div>
         </div>
 
@@ -114,18 +113,17 @@ export const IBCTokenDetailCard: React.FC<IBCTokenDetailCardProps> = ({
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 mb-1">24h Volume</p>
-            <p className="text-xl font-bold">
-              {renderData(chainData.volume24h, val => `$${val.toLocaleString()}`, "Not tracked")}
-            </p>
+            <div className="text-xl font-bold">
+              {renderData(chainData.volume24h, val => `${val.toLocaleString()}`, "Not tracked")}
+            </div>
           </div>
           <div>
             <p className="text-gray-600 mb-1">TVL</p>
-            <p className="text-xl font-bold">
-              {renderData(chainData.tvl, val => `$${val.toLocaleString()}`)}
-            </p>
+            <div className="text-xl font-bold">
+              {renderData(chainData.tvl, val => `${val.toLocaleString()}`)}
+            </div>
           </div>
         </div>
-
         {/* User's balance */}
         {isKeplrConnected ? (
           <div className="p-4 bg-blue-50 rounded-lg mb-6">
