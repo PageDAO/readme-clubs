@@ -1,6 +1,8 @@
-// Import the configuration from your existing files
-const { OSMOSIS_PAGE_DENOM, OSMOSIS_LCD, POOL_ID, OSMO_USDC_POOL_ID } = require('../../src/constants/ibc');
-const { PAGE_TOKENS, COSMOS_PAGE_TOKEN } = require('../../src/token/constants/tokenConfig');
+// Import constants from the JS file instead of the TS file
+const { OSMOSIS_LCD, OSMOSIS_PAGE_DENOM, POOL_ID, OSMO_USDC_POOL_ID } = require('../../netlify/functions/constants');
+const { PAGE_TOKENS } = require('../../src/token/constants/tokenConfig');
+
+// Rest of your code...
 
 // Cache for prices
 let ethPriceCache = null;
