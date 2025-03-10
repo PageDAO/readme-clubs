@@ -1,8 +1,5 @@
-// Import constants from the JS file instead of the TS file
 const { OSMOSIS_LCD, OSMOSIS_PAGE_DENOM, POOL_ID, OSMO_USDC_POOL_ID } = require('../../netlify/functions/constants');
-const { PAGE_TOKENS } = require('../../src/token/constants/tokenConfig');
-
-// Rest of your code...
+const { PAGE_TOKENS, COSMOS_PAGE_TOKEN } = require('../../netlify/functions/tokenConfig');
 
 // Cache for prices
 let ethPriceCache = null;
