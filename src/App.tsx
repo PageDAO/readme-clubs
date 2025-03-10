@@ -10,8 +10,7 @@ import { mainnet, optimism, base } from 'viem/chains'
 import { http } from 'viem'
 
 // Import your components
-// Import our new InterChainTokenPage component
-import { InterChainTokenPage } from './token/pages';
+import InterChainPage from './pages/InterChainPage';
 
 import HomePage from './pages/HomePage'
 import BrowseBooksPage from './pages/BrowseBooksPage'
@@ -58,8 +57,7 @@ function App() {
                     <Route path="/book/:bookId" element={<DetailPage />} />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/page-token" element={<TokenPage />} />
-                    {/* Update the interchain route to use our new component */}
-                    <Route path="/interchain" element={<InterChainTokenPage />} />
+                    <Route path="/interchain" element={<InterChainPage />} />
                   </Routes>
                 </Layout>
               </BrowserRouter>
