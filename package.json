@@ -28,6 +28,7 @@
     "@web3modal/ethereum": "^2.7.1",
     "@web3modal/react": "^2.7.1",
     "buffer": "^6.0.3",
+    "canvas": "^3.1.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "process": "^0.11.10",

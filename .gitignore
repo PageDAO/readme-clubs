@@ -29,3 +29,5 @@ npm-debug.log*
 
 # Ignore TypeScript build output
 *.tsbuildinfo
+# Local Netlify folder
+.netlify
