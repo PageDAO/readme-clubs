@@ -183,7 +183,6 @@ const TokenDashboardContent: React.FC = () => {
             Last updated: {formatDate(lastUpdated)}
           </div>
         </div>
-        
         {/* EVM Chain Cards */}
         <h3 className="text-xl font-bold mb-4">EVM Chains</h3>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -223,6 +222,12 @@ const TokenDashboardContent: React.FC = () => {
               <p className="text-2xl font-bold">42,500,000 $PAGE</p>
             </div>
           </div>
+        </div>
+
+        {/* If there's a note about future enhancements, keep it */}
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg text-blue-700">
+          <h3 className="font-bold mb-2">Coming Soon</h3>
+          <p>Support for more Cosmos chains will be added in future updates!</p>
         </div>
       </div>
     </div>
